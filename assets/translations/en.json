@@ -1,0 +1,14 @@
+{
+  "change_language": "Change Language",
+  "vietnamese": "Vietnamese",
+  "english": "English",
+  "are_processing" : "Loading ...",
+  "textLogin_1" : "Login Screen",
+  "textLogin_2" : "Email của bạn",
+  "textLogin_3" : "Your Email" ,
+  "textLogin_4" : "Your Password" ,
+  "textLogin_5" : "Log in" ,
+  "textLogin_6" : "Or log in with",
+  "textLogin_7" : "Create account new" ,
+  "textLogin_8" : "Register"   
+}

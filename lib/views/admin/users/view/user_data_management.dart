@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
-import 'package:rock_classifier/data/services/firebase_service.dart';
+import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/view_models/user_list_view_model.dart';
 import 'package:rock_classifier/views/admin/users/view/user_detail_screen.dart';
 import 'package:rock_classifier/views/admin/users/view/utils_management.dart';
@@ -23,38 +23,21 @@ class UserDataManagement extends StatefulWidget {
 class _UserDataManagementState extends State<UserDataManagement> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
-  String? currentUserRole;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        _searchText = _searchController.text.trim();
-        final viewModel = Provider.of<UserListViewModel>(context, listen: false);
-        if (_searchText.isNotEmpty) {
-          viewModel.searchUsers(_searchText);
-        } else {
-          viewModel.fetchUser();
-        }
-      });
-    });
-    _loadCurrentUserRole();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _searchText = _searchController.text.trim();
       final viewModel = Provider.of<UserListViewModel>(context, listen: false);
-      await viewModel.fetchUser(); // Chờ phương thức hoàn thành
-      print('GET DU LIEU: ${viewModel.users.length} users'); // In số lượng người dùng
-      for (var user in viewModel.users) {
-        print('User: ${user.email}, Role: ${user.role}, UID: ${user.uid}');
+      if (_searchText.isNotEmpty) {
+        viewModel.searchUsers(_searchText);
+      } else {
+        viewModel.fetchUser();
       }
     });
-  }
-
-  Future<void> _loadCurrentUserRole() async {
-    final role = await Provider.of<FirebaseService>(context, listen: false).getCurrentUserRole();
-    print('${role}');
-    setState(() {
-      currentUserRole = role;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<UserListViewModel>(context, listen: false).fetchUser();
     });
   }
 
@@ -64,8 +47,35 @@ class _UserDataManagementState extends State<UserDataManagement> {
     super.dispose();
   }
 
+  bool _canCurrentUserModify(UserModels targetUser, AuthViewModel authViewModel) {
+    final currentUser = authViewModel.currentUser;
+    if (currentUser == null) {
+      return false;
+    }
+
+    // Quy tắc 1 (Ưu tiên cao nhất): Không ai được thao tác với chính mình.
+    if (currentUser.uid == targetUser.uid) {
+      return false;
+    }
+
+    // Quy tắc 2: Phân quyền dựa trên vai trò
+    switch (currentUser.role) {
+      case 'Admin':
+        // Admin có thể thao tác với Super-User và User.
+        return targetUser.role == 'Super-User' || targetUser.role == 'User';
+      case 'Super-User':
+        // Super-User chỉ có thể thao tác với User.
+        return targetUser.role == 'User';
+      default:
+        // Các vai trò khác (như User) không có quyền thao tác.
+        return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final currentUserRole = authViewModel.currentUserRole;
     if (currentUserRole == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -114,47 +124,29 @@ class _UserDataManagementState extends State<UserDataManagement> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [Colors.white, Colors.grey.shade100],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
+                        child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(colors: [Colors.white, Colors.grey.shade100], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Tìm kiếm người dùng',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
-                    ),
+                            child: TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                    hintText: 'Tìm kiếm người dùng',
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 14))))),
                     const SizedBox(width: 12),
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Colors.white, Colors.grey.shade100],
-                        ),
+                        gradient: LinearGradient(colors: [Colors.white, Colors.grey.shade100]),
                         boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
+                          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
                         ],
                       ),
                       child: PopupMenuButton<SortOption>(
@@ -163,18 +155,9 @@ class _UserDataManagementState extends State<UserDataManagement> {
                           Provider.of<UserListViewModel>(context, listen: false).sortUsers(selected);
                         },
                         itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: SortOption.createdAt,
-                            child: Text("Theo thời gian tạo"),
-                          ),
-                          PopupMenuItem(
-                            value: SortOption.role,
-                            child: Text("Theo vai trò"),
-                          ),
-                          PopupMenuItem(
-                            value: SortOption.name,
-                            child: Text("Theo email"),
-                          ),
+                          PopupMenuItem(value: SortOption.createdAt, child: Text("Theo thời gian tạo")),
+                          PopupMenuItem(value: SortOption.role, child: Text("Theo vai trò")),
+                          PopupMenuItem(value: SortOption.name, child: Text("Theo email")),
                         ],
                       ),
                     ),
@@ -185,10 +168,7 @@ class _UserDataManagementState extends State<UserDataManagement> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Số lượng người dùng: ${viewModel.users.length}",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text("Số lượng người dùng: ${viewModel.users.length}", style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -204,19 +184,12 @@ class _UserDataManagementState extends State<UserDataManagement> {
                                 const SizedBox(height: 16),
                                 Text(
                                   "Không tìm thấy người dùng",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   "Hãy thử tìm kiếm với từ khóa khác",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
+                                  style: TextStyle(fontSize: 14, color: Colors.grey),
                                 ),
                               ],
                             ),
@@ -227,11 +200,7 @@ class _UserDataManagementState extends State<UserDataManagement> {
                               final user = viewModel.users[index];
                               return UserCard(
                                 user: user,
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => UserDetailScreen(user: user),
-                                    )),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => UserDetailScreen(user: user))),
                                 onMorePressed: () {
                                   showModalBottomSheet(
                                     context: context,
@@ -245,76 +214,79 @@ class _UserDataManagementState extends State<UserDataManagement> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           ListTile(
-                                            leading: const Icon(Icons.edit, color: Color(0xFF3B82F6)),
-                                            title: Text("Chỉnh sửa"),
-                                            onTap: () {
-                                              if (currentUserRole == 'Super-User' && user.role == 'Admin') {
+                                              leading: const Icon(Icons.edit, color: Color(0xFF3B82F6)),
+                                              title: Text("Chỉnh sửa"),
+                                              onTap: () {
                                                 Navigator.pop(context);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text("Bạn không có quyền chỉnh sửa người dùng này"),
-                                                    backgroundColor: Colors.redAccent,
-                                                  ),
-                                                );
-                                              }
-                                              Navigator.pop(context);
-                                              showEditUserSheet(context, user);
-                                            },
-                                          ),
+                                                // 2. Kiểm tra quyền bằng hàm helper
+                                                final bool canModify = _canCurrentUserModify(user, authViewModel);
+
+                                                // 3. Thực hiện hành động hoặc báo lỗi
+                                                if (canModify) {
+                                                  showEditUserSheet(context, user);
+                                                } else {
+                                                  String errorMessage = "Bạn không có quyền chỉnh sửa người dùng này.";
+                                                  if (user.uid == authViewModel.currentUser?.uid) {
+                                                    errorMessage = "Bạn không thể tự chỉnh sửa chính mình.";
+                                                  }
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(errorMessage),
+                                                      backgroundColor: Colors.redAccent,
+                                                    ),
+                                                  );
+                                                }
+                                              }),
                                           ListTile(
                                             leading: const Icon(Icons.delete, color: Colors.redAccent),
                                             title: Text("Xóa"),
                                             onTap: () {
-                                              if (currentUserRole == 'Super-User' && user.role == 'Admin') {
-                                                Navigator.pop(context);
+                                              // 1. Luôn đóng bottom sheet trước
+                                              Navigator.pop(context);
+                                              // 2. Kiểm tra quyền bằng hàm helper
+                                              final bool canModify = _canCurrentUserModify(user, authViewModel);
+                                              // 3. Thực hiện hành động hoặc báo lỗi
+                                              if (canModify) {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: Text("Xác nhận xóa"),
+                                                    content: Text("Bạn có chắc muốn xóa ${user.email}?"),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.pop(context),
+                                                        child: Text("Hủy"),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () async {
+                                                          final navigator = Navigator.of(context);
+                                                          final messenger = ScaffoldMessenger.of(context);
+                                                          try {
+                                                            await Provider.of<UserListViewModel>(context, listen: false).deleteUser(user);
+                                                            navigator.pop();
+                                                            messenger.showSnackBar(SnackBar(content: Text("Đã xóa người dùng")));
+                                                          } catch (e) {
+                                                            navigator.pop();
+                                                            messenger.showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+                                                          }
+                                                        },
+                                                        child: Text("Xóa"),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              } else {
+                                                String errorMessage = "Bạn không có quyền xóa người dùng này.";
+                                                if (user.uid == authViewModel.currentUser?.uid) {
+                                                  errorMessage = "Bạn không thể tự xóa chính mình.";
+                                                }
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
-                                                    content: Text("Bạn không có quyền xóa người dùng này"),
+                                                    content: Text(errorMessage),
                                                     backgroundColor: Colors.redAccent,
                                                   ),
                                                 );
                                               }
-                                              Navigator.pop(context);
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: Text("Xác nhận xóa"),
-                                                  content: Text("Bạn có chắc muốn xóa ${user.email}?"),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context),
-                                                      child: Text("Hủy"),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: () async {
-                                                        try {
-                                                          await Provider.of<UserListViewModel>(context, listen: false).deleteUser(user);
-                                                          // ignore: use_build_context_synchronously
-                                                          Navigator.pop(context);
-                                                          // ignore: use_build_context_synchronously
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text("Đã xóa người dùng"),
-                                                              backgroundColor: Colors.redAccent,
-                                                            ),
-                                                          );
-                                                        } catch (e) {
-                                                          // ignore: use_build_context_synchronously
-                                                          Navigator.pop(context);
-                                                          // ignore: use_build_context_synchronously
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text("Lỗi: $e"),
-                                                              backgroundColor: Colors.redAccent,
-                                                            ),
-                                                          );
-                                                        }
-                                                      },
-                                                      child: Text("Xóa"),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
                                             },
                                           ),
                                         ],

@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:rock_classifier/Views/admin/main_page_admin.dart';
-import 'package:rock_classifier/Views/users/home_page_user.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/data/services/firebase_service.dart';
 
@@ -34,7 +32,7 @@ class AuthViewModel extends ChangeNotifier {
     _firebaseService.auth.authStateChanges().listen((firebaseUser) async {
       if (firebaseUser != null) {
         _currentUser = await _firebaseService.getUserById(firebaseUser.uid);
-        _currentUserRole = await _firebaseService.getCurrentUserRole();
+        _currentUserRole = _currentUser?.role;
       } else {
         _currentUser = null;
         _currentUserRole = null;
@@ -43,9 +41,11 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  // Đăng nhập
-  Future<String?> signIn(BuildContext context, String email, String password) async {
+  // Đăng nhập tài khoản
+  Future<bool> signIn(String email, String password) async {
     _isLoading = true;
+    _errorMessage = null;
+    notifyListeners(); // Thông báo cho UI biết quá trình
     try {
       await _firebaseService.signInWithEmailAndPassword(
         email: email,
@@ -54,62 +54,40 @@ class AuthViewModel extends ChangeNotifier {
       final firebaseUser = _firebaseService.auth.currentUser;
       if (firebaseUser != null) {
         _currentUser = await _firebaseService.getUserById(firebaseUser.uid);
-        _currentUserRole = await _firebaseService.getCurrentUserRole();
+        _currentUserRole = _currentUser?.role; //Lấy role trực tiếp
 
         if (_currentUserRole == null) {
           _errorMessage = 'Không tìm thấy vai trò của người dùng';
-          _isLoading = false;
-          notifyListeners();
-          return _errorMessage;
+          return false;
         }
 
-        _isLoading = false;
-        notifyListeners();
-
-        if (isAdmin() || isSuperUser()) {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainPageAdmin(),
-              ));
-        } else if (isUser()) {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomePageUser(),
-              ));
-        } else {
-          _errorMessage = 'Vai trò không hợp lệ';
-          _isLoading = false;
-          notifyListeners();
-          return _errorMessage;
-        }
         _errorMessage = null;
-        return null;
+        return true;
       } else {
         _errorMessage = 'Không thể lấy thông tin người dùng';
-        _isLoading = false;
-        notifyListeners();
-        return _errorMessage;
+        return false;
       }
     } on FirebaseAuthException catch (e) {
       _errorMessage = _handleFirebaseAuthError(e);
-      _isLoading = false;
-      notifyListeners();
-      return _errorMessage;
+      return false;
     } catch (e) {
       _errorMessage = 'Lỗi không xác định: $e';
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return _errorMessage;
     }
   }
 
-  // Đăng kí
-  Future<String?> signUp(String email, String password, String password2) async {
+  // Đăng kí tài khoản
+  Future<bool> signUp(String email, String password, String password2) async {
     if (password != password2) {
-      return "Mật khẩu không khớp!";
+      _errorMessage = "Mật khẩu không khớp !";
+      return false;
     }
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       UserCredential result = await _firebaseService.createUserWithEmailAndPassword(
         email: email,
@@ -129,13 +107,19 @@ class AuthViewModel extends ChangeNotifier {
         await _firebaseService.firestore.collection('users').doc(user.uid).set(newUser.toJson());
         _currentUser = newUser;
         _currentUserRole = newUser.role;
-        notifyListeners();
+        return true;
       }
-      return null;
+      _errorMessage = "Không thể tạo tài khoản ";
+      return false;
     } on FirebaseAuthException catch (e) {
-      return _handleFirebaseAuthError(e);
+      _errorMessage = _handleFirebaseAuthError(e);
+      return false;
     } catch (e) {
-      return 'Lỗi không xác định: $e';
+      _errorMessage = 'Lỗi không xác định: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -150,27 +134,29 @@ class AuthViewModel extends ChangeNotifier {
   // Cập nhật ngườu dùng
   Future<void> updateUser(UserModels user) async {
     try {
-      _setLoading(true);
+      _isLoading = true;
+      notifyListeners();
       await _firebaseService.updateUser(user);
       _currentUser = user;
       _errorMessage = null;
-      notifyListeners();
     } catch (e) {
       _errorMessage = 'Lỗi cập nhật thông tin: $e';
-      notifyListeners();
     } finally {
-      _setLoading(false);
+      _isLoading = false;
+      notifyListeners(); // Cập nhật lại sau khi hoàn tất
     }
   }
 
   // Tải ảnh lên ứng dụng
   Future<String?> uploadAvatar(File image) async {
     try {
-      _setLoading(true);
+      _isLoading = true;
+      notifyListeners();
+
       final uid = _firebaseService.auth.currentUser?.uid;
+      // Kiểm tra ui người dùng
       if (uid == null) {
         _errorMessage = 'Không tìm thấy người dùng !';
-        notifyListeners();
         return null;
       }
 
@@ -181,10 +167,10 @@ class AuthViewModel extends ChangeNotifier {
       return url;
     } catch (e) {
       _errorMessage = 'Lỗi tải ảnh : $e';
-      notifyListeners();
       return null;
     } finally {
-      _setLoading(false);
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -208,13 +194,14 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  // Cập nhật password người dùng
   Future<String?> updatePassword(String oldPassword, String newPassword) async {
     try {
-      _setLoading(true);
+      _isLoading = true;
+      notifyListeners();
       final user = _firebaseService.auth.currentUser;
       if (user == null) {
         _errorMessage = 'Người dùng chưa đăng nhập';
-        notifyListeners();
         return _errorMessage;
       }
       final cred = EmailAuthProvider.credential(
@@ -224,18 +211,16 @@ class AuthViewModel extends ChangeNotifier {
       await user.reauthenticateWithCredential(cred);
       await user.updatePassword(newPassword);
       _errorMessage = null;
-      notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _handleFirebaseAuthError(e);
-      notifyListeners();
       return _errorMessage;
     } catch (e) {
       _errorMessage = 'Lỗi không xác định: $e';
-      notifyListeners();
       return _errorMessage;
     } finally {
-      _setLoading(false);
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -244,11 +229,11 @@ class AuthViewModel extends ChangeNotifier {
     required String address,
   }) async {
     try {
-      _setLoading(true);
+      _isLoading = true;
+      notifyListeners();
       final firebaseUser = _firebaseService.auth.currentUser;
       if (firebaseUser == null) {
         _errorMessage = 'Người dùng chưa đăng nhập';
-        notifyListeners();
         return false;
       }
 
@@ -263,14 +248,13 @@ class AuthViewModel extends ChangeNotifier {
       }
 
       _errorMessage = null;
-      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Lỗi cập nhật thông tin: $e';
-      notifyListeners();
       return false;
     } finally {
-      _setLoading(false);
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

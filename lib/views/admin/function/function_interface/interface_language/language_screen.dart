@@ -9,11 +9,6 @@ class LanguageScreen extends StatefulWidget {
 class _LanguageScreenState extends State<LanguageScreen> {
   late String selectedLanguage;
 
-  @override
-  void initState() {
-    super.initState();
-    // Không dùng context ở đây
-  }
 
   @override
   void didChangeDependencies() {
@@ -32,20 +27,44 @@ class _LanguageScreenState extends State<LanguageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('change_language'.tr()),
+        centerTitle: true,
+        backgroundColor: Color(0xFFF7F7F7),
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text("change_language".tr(), style: Theme.of(context).textTheme.titleLarge),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        ),
       ),
       body: Column(
         children: [
           ListTile(
-            title: Text('vietnamese'.tr()),
-            trailing: selectedLanguage == 'vi' ? Icon(Icons.check, color: Colors.blue) : null,
+            title: Text(
+              'vietnamese'.tr(),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            trailing: selectedLanguage == 'vi' ? Icon(Icons.check, color: Colors.green) : null,
             onTap: () => changeLanguage('vi'),
           ),
+          Divider(height: 1, color: Colors.grey[300]),
           ListTile(
-            title: Text('english'.tr()),
-            trailing: selectedLanguage == 'en' ? Icon(Icons.check, color: Colors.blue) : null,
+            title: Text(
+              'english'.tr(),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            trailing: selectedLanguage == 'en' ? Icon(Icons.check, color: Colors.green) : null,
             onTap: () => changeLanguage('en'),
           ),
+          Divider(height: 1, color: Colors.grey[300]),
         ],
       ),
     );

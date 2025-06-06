@@ -76,12 +76,12 @@ class NewsViewModel with ChangeNotifier {
   }
 
   // SẮP XẾP SỚM NHẤT ĐẾN MUỘN NHẤT
-  void sortByCreatAtUP() {
+  void sortByCreatAtUp() {
     _news.sort((a, b) => (a.createAt).compareTo(b.createAt));
     notifyListeners();
   }
 
-  void sortByCreatAtDPWN() {
+  void sortByCreatAtDown() {
     _news.sort((a, b) => (b.createAt).compareTo(a.createAt));
     notifyListeners();
   }

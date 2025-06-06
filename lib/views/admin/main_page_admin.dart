@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:rock_classifier/Views/admin/home_page_admin.dart';
 import 'package:rock_classifier/Views/admin/information_page_admin.dart';
@@ -12,16 +13,14 @@ class MainPageAdmin extends StatefulWidget {
 class _MainPageAdminState extends State<MainPageAdmin> {
   int _selectedIndex = 0;
 
-  // danh sách widget con
   late final List<Widget> _widgetOptions;
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo các danh sách widget con
-    _widgetOptions = [
-      const HomePageAdmin(),
-      const InformationPageAdmin(),
+    _widgetOptions = const [
+      HomePageAdmin(),
+      InformationPageAdmin(),
     ];
   }
 
@@ -33,18 +32,50 @@ class _MainPageAdminState extends State<MainPageAdmin> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      body: _widgetOptions[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.grey[300],
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Trang chủ"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Người dùng"),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.red,
-        unselectedItemColor: Colors.grey[600],
-        onTap: _onItemTapped,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _widgetOptions[_selectedIndex],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, -1),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: colorScheme.primary,
+          unselectedItemColor: colorScheme.onSurfaceVariant,
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: "textLabelNavigator".tr(),
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: "textLabelNavigator2".tr(),
+            ),
+          ],
+        ),
       ),
     );
   }

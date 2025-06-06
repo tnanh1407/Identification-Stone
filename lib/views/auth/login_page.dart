@@ -1,8 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
+import 'package:rock_classifier/views/admin/main_page_admin.dart';
 import 'package:rock_classifier/views/auth/register_page.dart';
+import 'package:rock_classifier/views/users/home_page_user.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,27 +17,27 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _iconLoading = true;
 
   void handleLogin(BuildContext context) async {
-    setState(() {
-      _isLoading = true;
-    });
-    final authProvider = Provider.of<AuthViewModel>(context, listen: false);
-    String? error = await authProvider.signIn(
-      context,
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    bool success = await authViewModel.signIn(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
-
-    setState(() {
-      _isLoading = false;
-    });
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+    if (success) {
+      if (authViewModel.isAdmin() || authViewModel.isSuperUser()) {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => MainPageAdmin()));
+      } else if (authViewModel.isUser()) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePageUser()),
+        );
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authViewModel.errorMessage ?? "Đăng nhập thất bại")));
+        }
+      }
     }
   }
 
@@ -45,99 +48,93 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  InputDecoration _customInputDecoration(String hint, IconData icon, {Widget? suffix}) {
+    return InputDecoration(
+      filled: true,
+      fillColor: const Color(0xFFF3E5F5),
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[700]),
+      prefixIcon: Icon(icon, color: Colors.black),
+      suffixIcon: suffix,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
   Widget titleText(String title) {
     return Text(
       title,
       textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 36,
+      style: GoogleFonts.roboto(
+        fontSize: 32,
         fontWeight: FontWeight.bold,
-        color: Colors.brown,
+        color: const Color(0xFF6A1B9A),
       ),
     );
   }
 
-  Widget inputEmail(String textHint) {
+  Widget inputEmail(String hint) {
     return TextFormField(
-      style: TextStyle(
-        color: Colors.white,
-      ),
       controller: _emailController,
-      decoration: InputDecoration(
-        fillColor: Colors.brown,
-        filled: true,
-        hintText: textHint,
-        prefixIcon: Icon(Icons.email),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(25.0),
-          ),
-          borderSide: BorderSide.none,
-        ),
-      ),
+      decoration: _customInputDecoration(hint, Icons.email),
+      style: const TextStyle(color: Colors.black87),
     );
   }
 
-  Widget inputPassword(String textHint) {
-    return TextField(
-      style: TextStyle(
-        color: Colors.white,
-      ),
+  Widget inputPassword(String hint) {
+    return TextFormField(
       controller: _passwordController,
       obscureText: _iconLoading,
-      decoration: InputDecoration(
-        fillColor: Colors.brown,
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(25.0),
+      decoration: _customInputDecoration(
+        hint,
+        Icons.lock,
+        suffix: IconButton(
+          icon: Icon(
+            _iconLoading ? Icons.visibility : Icons.visibility_off,
+            color: const Color(0xFF6A1B9A),
           ),
-          borderSide: BorderSide.none,
-        ),
-        hintText: textHint,
-        prefixIcon: const Icon(Icons.lock),
-        suffixIcon: IconButton(
           onPressed: () {
             setState(() {
               _iconLoading = !_iconLoading;
             });
           },
-          icon: Icon(_iconLoading ? Icons.visibility : Icons.visibility_off),
         ),
       ),
+      style: const TextStyle(color: Colors.black87),
     );
   }
 
-  Widget labelForgetPasword(String label) {
+  Widget labelForgetPassword(String label) {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {},
         child: Text(
           label,
-          style: TextStyle(color: Colors.brown, fontSize: 16),
+          style: GoogleFonts.roboto(
+            color: const Color(0xFF6A1B9A),
+            fontSize: 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget buttonLogin(String label) {
+  Widget buttonLogin(String label, bool isLoading) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green,
-        padding: EdgeInsets.symmetric(vertical: 12),
+        backgroundColor: const Color(0xFF6A1B9A),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25.0),
         ),
       ),
-      onPressed: _isLoading
-          ? null
-          : () {
-              handleLogin(context);
-            },
+      onPressed: isLoading ? null : () => handleLogin(context),
       child: Text(
         label,
-        style: TextStyle(
+        style: GoogleFonts.roboto(
           color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -146,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget labelext(String label) {
+  Widget labelDivider(String label) {
     return Row(
       children: [
         const Expanded(child: Divider()),
@@ -154,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Text(
             label,
-            style: TextStyle(color: Colors.grey[600]),
+            style: GoogleFonts.roboto(color: Colors.grey[600], fontSize: 16),
           ),
         ),
         const Expanded(child: Divider()),
@@ -162,22 +159,15 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget optinalLoginOther() {
+  Widget optionalLoginOther() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.android, size: 30, color: Colors.green),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.apple, size: 30),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.facebook, size: 30, color: Colors.blue),
-        ),
+      children: const [
+        Icon(Icons.android, size: 40, color: Colors.green),
+        SizedBox(width: 16),
+        Icon(Icons.apple, size: 40, color: Colors.grey),
+        SizedBox(width: 16),
+        Icon(Icons.facebook, size: 40, color: Colors.blue),
       ],
     );
   }
@@ -186,19 +176,24 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(title1),
+        Text(
+          title1,
+          style: GoogleFonts.roboto(fontSize: 16),
+        ),
         TextButton(
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const RegisterPage(),
-              ),
-            );
+            // Navigator.push(
+            //   context,
+            //   MaterialPageRoute(builder: (context) => const RegisterPage()),
+            // );
           },
           child: Text(
             title2,
-            style: TextStyle(color: Colors.brown),
+            style: GoogleFonts.roboto(
+              color: const Color(0xFF6A1B9A),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -207,7 +202,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authViewModel = Provider.of<AuthViewModel>(context);
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           Padding(
@@ -215,44 +212,40 @@ class _LoginPageState extends State<LoginPage> {
             child: Center(
               child: SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     titleText('textLogin_1'.tr()),
                     const SizedBox(height: 40),
-                    inputEmail("textLogin_2".tr()),
+                    inputEmail('textLogin_2'.tr()),
                     const SizedBox(height: 20),
-                    inputPassword("textLogin_3".tr()),
-                    labelForgetPasword("textLogin_4".tr()),
+                    inputPassword('textLogin_3'.tr()),
+                    labelForgetPassword('textLogin_4'.tr()),
                     const SizedBox(height: 20),
-                    buttonLogin("textLogin_5".tr()),
+                    buttonLogin('textLogin_5'.tr(), authViewModel.isLoading),
                     const SizedBox(height: 20),
-                    labelext("textLogin_6".tr()),
+                    labelDivider('textLogin_6'.tr()),
                     const SizedBox(height: 20),
-                    optinalLoginOther(),
+                    optionalLoginOther(),
                     const SizedBox(height: 20),
-                    labelText2('textLogin_7'.tr(), 'textLogin_8'.tr())
+                    labelText2('textLogin_7'.tr(), 'textLogin_8'.tr()),
                   ],
                 ),
               ),
             ),
           ),
-          // Màn hình loading chồng lên
-          if (_isLoading)
+          if (authViewModel.isLoading)
             Container(
-              color: Color.fromARGB(128, 0, 0, 0),
+              color: Colors.black.withOpacity(0.5),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: 16), // Khoảng cách giữa vòng tròn và chữ
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 16),
                     Text(
                       'are_processing'.tr(),
-                      style: TextStyle(color: Colors.white),
-                    )
+                      style: GoogleFonts.roboto(color: Colors.white),
+                    ),
                   ],
                 ),
               ),

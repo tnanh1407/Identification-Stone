@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -79,31 +80,34 @@ class _UpdateInformationAdminState extends State<UpdateInformationAdmin> {
     );
   }
 
-  // WIDGET _buildListTile;
-  Widget _buildListTile({required String title, required String value, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: Color(0xFFF0F0F0),
-            ),
+  Widget _buildListTile({
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Color(0xFFF0F0F0),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            Expanded(
-              child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -117,41 +121,38 @@ class _UpdateInformationAdminState extends State<UpdateInformationAdmin> {
         }
         final user = authViewModel.currentUser;
         if (user == null) {
-          return const Center(child: Text('Không tìm thấy thông tin người dùng'));
+          return Center(child: Text('Unable_to_find_user_information'.tr()));
         }
 
         return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 1,
+            centerTitle: true,
+            backgroundColor: Color(0xFFF7F7F7),
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            title: Text("textEditAdmin9".tr(), style: Theme.of(context).textTheme.titleLarge),
             leading: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            ),
-            centerTitle: true,
-            title: const Text(
-              "Thông tin người dùng",
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
             ),
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
-                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  tooltip: 'Chỉnh sửa',
                   onPressed: () {
                     editUserInfoBottomSheet(context, user);
                   },
-                  child: const Text(
-                    "Chỉnh sửa",
-                    style: TextStyle(color: Colors.blueGrey),
-                  ),
                 ),
               ),
             ],
@@ -160,105 +161,146 @@ class _UpdateInformationAdminState extends State<UpdateInformationAdmin> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Avatar
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
-                  ),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _pickImage(user),
-                        child: CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.teal.shade100,
-                          backgroundImage: user.avatar != null ? NetworkImage(user.avatar!) : null,
-                          child: user.avatar == null ? const Icon(Icons.person, size: 40, color: Colors.teal) : null,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text("Thay đổi ảnh đại diện", style: TextStyle(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
+                AvatarSection(user: user, onPickImage: _pickImage),
                 const SizedBox(height: 16),
-
-                // Personal Info
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildListTile(
-                        title: "Họ và tên",
-                        value: user.fullName ?? 'Chưa cập nhật',
-                        onTap: () {},
-                      ),
-                      _buildListTile(
-                        title: "Địa chỉ",
-                        value: user.address ?? 'Chưa cập nhật',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                ),
+                PersonalInfoSection(buildListTile: _buildListTile, user: user),
                 const SizedBox(height: 16),
-
                 // Email and Password
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text("Tài khoản và mật khẩu", style: TextStyle(fontSize: 16, color: Colors.grey)),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildListTile(
-                        title: "Địa chỉ Email",
-                        value: user.email,
-                        onTap: () {},
-                      ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const UpdatePasswordAdmin(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("Mật khẩu", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                              Text("Thay đổi mật khẩu", style: TextStyle(fontSize: 16, color: Colors.blueGrey.shade800)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                AccountPasswordSection(
+                  buildListTile: _buildListTile,
+                  user: user,
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class AvatarSection extends StatelessWidget {
+  final UserModels user;
+  final Function(UserModels) onPickImage;
+  const AvatarSection({super.key, required this.user, required this.onPickImage});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => onPickImage(user),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.grey,
+              backgroundImage: user.avatar != null ? NetworkImage(user.avatar!) : null,
+              child: user.avatar == null ? const Icon(Icons.person, size: 40, color: Colors.grey) : null,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text("textEditAdmin2".tr(), style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class PersonalInfoSection extends StatelessWidget {
+  final UserModels user;
+  final Widget Function({
+    required String title,
+    required String value,
+  }) buildListTile;
+
+  const PersonalInfoSection({super.key, required this.user, required this.buildListTile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
+      ),
+      child: Column(
+        children: [
+          buildListTile(
+            title: "textEditAdmin3".tr(),
+            value: user.fullName ?? "no_data_available".tr(),
+          ),
+          buildListTile(
+            title: "textEditAdmin4".tr(),
+            value: user.address ?? "no_data_available".tr(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AccountPasswordSection extends StatelessWidget {
+  final UserModels user;
+  final Widget Function({
+    required String title,
+    required String value,
+  }) buildListTile;
+
+  const AccountPasswordSection({super.key, required this.user, required this.buildListTile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text("textEditAdmin5".tr(), style: Theme.of(context).textTheme.titleMedium),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 5)],
+          ),
+          child: Column(
+            children: [
+              buildListTile(
+                title: "textEditAdmin6".tr(),
+                value: user.email,
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UpdatePasswordAdmin(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("textEditAdmin7".tr(), style: Theme.of(context).textTheme.bodyMedium),
+                      Text("textEditAdmin8".tr(), style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

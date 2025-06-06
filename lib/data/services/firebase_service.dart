@@ -151,19 +151,6 @@ class FirebaseService {
     }
   }
 
-  // Lấy role
-  Future<String?> getCurrentUserRole() async {
-    try {
-      final currentUser = _auth.currentUser;
-      if (currentUser == null) return null;
-      final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
-      return userDoc.data()?['role'] as String?;
-    } catch (e) {
-      debugPrint('Error getting user role $e');
-      return null;
-    }
-  }
-
   // Hàm thay đổi mật khẩu
   Future<void> changePassword(String newPassword) async {
     try {
@@ -172,9 +159,4 @@ class FirebaseService {
       throw Exception('Lỗi khi đổi mật khẩu: $e');
     }
   }
-
-  // Kiểm tra role
-  Future<bool> isAdmin() async => (await getCurrentUserRole()) == 'Admin';
-  Future<bool> isSuperClass() async => (await getCurrentUserRole()) == 'Super-Class';
-  Future<bool> isUser() async => (await getCurrentUserRole()) == 'User';
 }

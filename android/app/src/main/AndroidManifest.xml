@@ -2,11 +2,18 @@
     package="com.example.rock_classifier">
 
     <!-- Permissions -->
+    <!-- Quyền Camera là cần thiết -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    
+    <!-- Các quyền storage này đã cũ và không còn cần thiết cho các API mới -->
+    <!-- Bạn có thể xóa chúng đi để ứng dụng sạch sẽ hơn, nhưng giữ lại cũng không sao -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    
+    <!-- Quyền này cho phép truy cập ảnh trên Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
+    <!-- `requestLegacyExternalStorage` cũng đã cũ, có thể xóa nếu không có lý do đặc biệt -->
     <application
         android:label="rock_classifier"
         android:name="${applicationName}"
@@ -38,10 +45,32 @@
             android:value="2" />
     </application>
 
+    <!-- SỬA Ở ĐÂY: Thêm các intent cần thiết vào trong thẻ <queries> đã có -->
     <queries>
+        <!-- Intent này có sẵn, cứ để đó -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- THÊM CÁC INTENT SAU ĐỂ URL_LAUNCHER HOẠT ĐỘNG -->
+        <!-- Cho phép mở link web (https, http) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        
+        <!-- (Tùy chọn) Cho phép mở trình gọi điện -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+
+        <!-- (Tùy chọn) Cho phép mở trình gửi email -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
     </queries>
+
 </manifest>

@@ -11,8 +11,11 @@ import 'package:rock_classifier/view_models/news_view_model.dart';
 import 'package:rock_classifier/view_models/rock_view_model.dart';
 import 'package:rock_classifier/view_models/theme_provider.dart';
 import 'package:rock_classifier/view_models/user_list_view_model.dart';
+import 'package:rock_classifier/views/admin/news/news_data_management.dart';
 import 'package:rock_classifier/views/admin/rocks/rock_list_screen.dart';
-import 'package:rock_classifier/views/auth/login_page.dart'; // Thêm thư viện easy_localization
+import 'package:rock_classifier/views/auth/login_page.dart';
+import 'package:rock_classifier/views/intro/intro_home_screen.dart';
+import 'package:rock_classifier/views/intro/intro_screen.dart'; // Thêm thư viện easy_localization
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Khởi tạo đầy đủ các chức năng của Flutter Framework
@@ -55,7 +58,7 @@ class MyApp extends StatelessWidget {
       locale: context.locale, // Sử dụng ngôn ngữ mặc định của thiết bị
       theme: lightTheme,
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      home: IntroHomeScreen(),
     );
   }
 }

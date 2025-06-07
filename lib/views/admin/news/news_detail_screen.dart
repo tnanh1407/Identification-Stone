@@ -1,501 +1,410 @@
 import 'dart:io';
-
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/news_models.dart';
+import 'package:rock_classifier/data/models/user_models.dart';
+import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/view_models/news_view_model.dart';
-import 'package:rock_classifier/views/admin/users/view/utils_management.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NewsDetailScreen extends StatefulWidget {
-  final NewsModels news;
-  const NewsDetailScreen({super.key, required this.news});
+// =======================================================================
+//                    MÀN HÌNH CHÍNH: CHI TIẾT BÀI VIẾT
+// =======================================================================
+class NewsDetailScreen extends StatelessWidget {
+  final String newsId;
 
-  @override
-  State<NewsDetailScreen> createState() => _NewsDetailScreenState();
-}
+  const NewsDetailScreen({super.key, required this.newsId});
 
-class _NewsDetailScreenState extends State<NewsDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        centerTitle: true,
-        leading: const BackButton(color: Colors.white),
-        backgroundColor: Color(0xFFF7F7F7),
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    final theme = Theme.of(context);
+
+    return Consumer<NewsViewModel>(
+      builder: (context, viewModel, child) {
+        final news = viewModel.news.firstWhere(
+          (n) => n.uid == newsId,
+          orElse: () => NewsModels.empty,
+        );
+
+        if (news.isEmpty) {
+          Future.microtask(() => Navigator.of(context).pop());
+          return const Scaffold(body: SizedBox.shrink());
+        }
+
+        return Scaffold(
+          backgroundColor: theme.colorScheme.background,
+          appBar: AppBar(
+            title: Text("news_detail.title".tr()),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, news),
+                const Divider(height: 32),
+                if (news.fileDinhKem != null && news.fileDinhKem!.isNotEmpty) _buildAttachmentSection(context, news),
+                _buildSection(context, 'news_detail.content'.tr(), news.noiDungBaiViet),
+                if (news.duongDan != null && news.duongDan!.isNotEmpty) _buildLinkSection(context, news.duongDan!),
+                const SizedBox(height: 80),
+              ],
             ),
           ),
-        ),
-        title: Text(
-          "Thông tin bài báo chi tiết",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+          floatingActionButton: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton.extended(
+                onPressed: () => _showAddEditNewsSheet(context, news: news),
+                label: Text('news_detail.edit_button'.tr()),
+                icon: const Icon(Icons.edit_outlined),
+                heroTag: 'edit_news_fab',
+              ),
+              const SizedBox(width: 12),
+              FloatingActionButton.extended(
+                onPressed: () => _showDeleteNewsConfirmationDialog(context, news: news),
+                label: Text('news_detail.delete_button'.tr()),
+                icon: const Icon(Icons.delete_outline),
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+                heroTag: 'delete_news_fab',
+              ),
+            ],
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      },
+    );
+  }
+
+  // ... (Các hàm _build... giữ nguyên)
+  Widget _buildHeader(BuildContext context, NewsModels news) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(news.tenBaiViet, style: theme.textTheme.displaySmall),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
           children: [
-            // Tiêu đề
-            Text(
-              widget.news.tenBaiViet,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+            _InfoChip(
+              icon: Icons.person_outline,
+              label: 'news_detail.author'.tr(),
+              value: news.tacGia ?? 'N/A',
             ),
-            const SizedBox(height: 12),
-
-            // Ngày tạo
-            Row(
-              children: [
-                const Icon(Icons.access_time, size: 18, color: Colors.grey),
-                const SizedBox(width: 6),
-                Text(
-                  DateFormat('dd/MM/yyyy – HH:mm').format(widget.news.createAt),
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
+            _InfoChip(
+              icon: Icons.topic_outlined,
+              label: 'news_detail.topic'.tr(),
+              value: news.chuDe ?? 'N/A',
             ),
-            const SizedBox(height: 8),
-
-            // Chủ đề
-            Row(
-              children: [
-                const Icon(Icons.category, size: 18, color: Colors.grey),
-                const SizedBox(width: 6),
-                Text(
-                  widget.news.chuDe ?? 'Chưa có dữ liệu',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Nội dung
-            const Text(
-              'Nội dung:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.news.noiDungBaiViet ?? 'Chưa có dữ liệu',
-              style: const TextStyle(fontSize: 16, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-
-            // Hình ảnh đính kèm
-            const Text(
-              'Hình ảnh đính kèm:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                height: 240,
-                color: Colors.grey[200],
-                child: (widget.news.fileDinhKem != null && widget.news.fileDinhKem!.isNotEmpty)
-                    ? Image.network(
-                        widget.news.fileDinhKem!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Đường link đi kèm
-            const Text(
-              'Đường link đi kèm:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () {
-                // Handle tap link nếu cần
-              },
-              child: Text(
-                widget.news.duongDan ?? 'Không có đường dẫn',
-                style: const TextStyle(fontSize: 16, color: Colors.blue, decoration: TextDecoration.underline),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    showEditNewsSheet(context, widget.news);
-                  },
-                  icon: const Icon(Icons.edit, color: Colors.white),
-                  label: const Text(
-                    'Chỉnh sửa',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text("Xác nhận xóa"),
-                        content: Text("Bạn có chắc muốn xóa ${widget.news.tenBaiViet}?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text("Hủy"),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              try {
-                                await Provider.of<NewsViewModel>(context, listen: false).deleteNews(widget.news.uid);
-                                // ignore: use_build_context_synchronously
-                                Navigator.pop(context);
-                                // ignore: use_build_context_synchronously
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Đã xóa người dùng"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              } catch (e) {
-                                // ignore: use_build_context_synchronously
-                                Navigator.pop(context);
-                                // ignore: use_build_context_synchronously
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Lỗi: $e"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
-                            },
-                            child: Text("Xóa", style: TextStyle(color: Colors.redAccent)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.delete, color: Colors.white),
-                  label: const Text(
-                    'Xóa bài',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
           ],
         ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Icon(Icons.access_time_outlined, size: 16, color: theme.colorScheme.secondary),
+            const SizedBox(width: 6),
+            Text(
+              DateFormat('dd/MM/yyyy, HH:mm').format(news.createAt),
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.secondary),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttachmentSection(BuildContext context, NewsModels news) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('news_detail.attachment'.tr(), style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              height: 200,
+              color: theme.colorScheme.surfaceVariant,
+              child: Image.network(
+                news.fileDinhKem!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkSection(BuildContext context, String url) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('news_detail.link'.tr(), style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () async {
+              final uri = Uri.tryParse(url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Text(
+              url,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(BuildContext context, String title, String? content) {
+    if (content == null || content.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleLarge),
+          const Divider(height: 16),
+          Text(content, style: theme.textTheme.bodyLarge?.copyWith(height: 1.5)),
+        ],
       ),
     );
   }
 }
 
-void showEditNewsSheet(BuildContext context, NewsModels news) {
-  final TextEditingController tenBaiVietController = TextEditingController(text: news.tenBaiViet);
-  final TextEditingController noiDungController = TextEditingController(text: news.noiDungBaiViet ?? '');
-  final TextEditingController duongDanController = TextEditingController(text: news.duongDan ?? '');
-  String? avatarUrl = news.fileDinhKem;
-  String? selectedTopic = news.chuDe;
-  bool isPressed = false;
-  File? tempImage;
+// =======================================================================
+//                      WIDGETS & DIALOGS ĐƯỢC GỘP VÀO
+// =======================================================================
 
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoChip({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Chip(
+      avatar: Icon(icon, size: 18, color: theme.colorScheme.onSecondaryContainer),
+      label: Text('$label: $value'),
+      backgroundColor: theme.colorScheme.secondaryContainer,
+      labelStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer),
+    );
+  }
+}
+
+void _showDeleteNewsConfirmationDialog(BuildContext context, {required NewsModels news}) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('user_management.delete_confirmation_title'.tr()),
+      content: Text('news_detail.delete_confirmation_content'.tr(namedArgs: {'title': news.tenBaiViet})),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('common.cancel'.tr())),
+        TextButton(
+          onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final viewModel = Provider.of<NewsViewModel>(context, listen: false);
+            try {
+              await viewModel.deleteNews(news);
+              Navigator.pop(dialogContext);
+            } catch (e) {
+              Navigator.pop(dialogContext);
+              messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+            }
+          },
+          child: Text('common.delete'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showAddEditNewsSheet(BuildContext context, {NewsModels? news}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white, Color(0xFFF8FAFC)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 20,
-                  offset: Offset(0, -10),
-                ),
-              ],
-            ),
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 24, left: 24, right: 24, top: 32),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Chỉnh sửa bài viết",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.black87),
-                      ),
-                      IconButton(icon: const Icon(Icons.close, color: Colors.grey, size: 28), onPressed: () => Navigator.pop(context)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: tenBaiVietController,
-                    decoration: InputDecoration(
-                      labelText: "Tên bài viết",
-                      prefixIcon: const Icon(Icons.person, color: Color(0xFF3B82F6)),
-                      labelStyle: TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white70,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: noiDungController,
-                    decoration: InputDecoration(
-                      labelText: "Nội dung bài viết",
-                      prefixIcon: const Icon(Icons.email, color: Color(0xFF3B82F6)),
-                      labelStyle: TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white70,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: duongDanController,
-                    decoration: InputDecoration(
-                      labelText: "Đường dẫn",
-                      prefixIcon: const Icon(Icons.location_on, color: Color(0xFF3B82F6)),
-                      labelStyle: TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white70,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedTopic,
-                    decoration: InputDecoration(
-                      labelText: "Chủ đề",
-                      prefixIcon: const Icon(Icons.person, color: Color(0xFF3B82F6)),
-                      labelStyle: TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white70,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder:
-                          OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2)),
-                    ),
-                    items: ['Kiến Thức', 'Học Tập'].map((String role) {
-                      return DropdownMenuItem<String>(
-                        value: role,
-                        child: Text(role),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setModalState(() {
-                        selectedTopic = newValue ?? 'Kiến Thức';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    icon: Icon(
-                      tempImage == null ? Icons.image : Icons.check_circle,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      tempImage == null ? "Chọn ảnh đại diện" : "Đã chọn ảnh",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF60A5FA),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 4,
-                    ),
-                    onPressed: () async {
-                      final granted = await requestPermissionDialog(context);
-                      if (granted) {
-                        final viewModel = Provider.of<NewsViewModel>(context, listen: false);
-                        await viewModel.pickImage(ImageSource.gallery);
-                        if (viewModel.selectedImage != null) {
-                          setModalState(() {
-                            tempImage = viewModel.selectedImage;
-                          });
-                        }
-                      }
-                    },
-                  ),
-                  if (tempImage != null || avatarUrl != null) ...[
-                    const SizedBox(height: 16),
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: tempImage != null
-                            ? Image.file(
-                                tempImage!,
-                                height: 120,
-                                width: 120,
-                                fit: BoxFit.cover,
-                              )
-                            : Image.network(
-                                avatarUrl!,
-                                height: 120,
-                                width: 120,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
-                              ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    //onTapDown hạ tay xuống
-                    onTapDown: (_) => setModalState(() => isPressed = true),
-                    // onTapUp nhấc tay lên
-                    onTapUp: (_) async {
-                      setModalState(() => isPressed = false);
-                      if (tenBaiVietController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Vui lòng nhập Tên bài viết"),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
-                        return;
-                      }
-                      try {
-                        final viewModel = Provider.of<NewsViewModel>(context, listen: false);
-                        final baiBao = NewsModels(
-                            uid: news.uid,
-                            tenBaiViet: tenBaiVietController.text,
-                            noiDungBaiViet: noiDungController.text,
-                            duongDan: duongDanController.text,
-                            fileDinhKem: avatarUrl,
-                            createAt: news.createAt);
-
-                        if (tempImage != null) {
-                          await viewModel.updatenNewsWithImage(baiBao);
-                        } else {
-                          await viewModel.updateNews(baiBao);
-                        }
-                        // ignore: use_build_context_synchronously
-                        Navigator.pop(context);
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Cập nhật người dùng thành công!"),
-                            backgroundColor: const Color(0xFF3B82F6),
-                          ),
-                        );
-                      } catch (e) {
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Lỗi: $e"),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
-                      }
-                    },
-                    onTapCancel: () => setModalState(() => isPressed = false),
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: isPressed ? 12 : 14),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            // ignore: deprecated_member_use
-                            color: Colors.black.withOpacity(isPressed ? 0.1 : 0.3),
-                            blurRadius: 10,
-                            offset: Offset(0, isPressed ? 2 : 6),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          "Cập nhật",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
+    builder: (_) => MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: context.read<NewsViewModel>()),
+        ChangeNotifierProvider.value(value: context.read<AuthViewModel>()),
+      ],
+      child: _AddEditNewsForm(news: news),
+    ),
   );
+}
+
+class _AddEditNewsForm extends StatefulWidget {
+  final NewsModels? news;
+  const _AddEditNewsForm({this.news});
+  bool get isEditMode => news != null;
+
+  @override
+  State<_AddEditNewsForm> createState() => _AddEditNewsFormState();
+}
+
+class _AddEditNewsFormState extends State<_AddEditNewsForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
+  late TextEditingController _linkController;
+
+  String? _selectedTopic;
+  File? _attachment;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.news?.tenBaiViet);
+    _contentController = TextEditingController(text: widget.news?.noiDungBaiViet);
+    _linkController = TextEditingController(text: widget.news?.duongDan);
+    _selectedTopic = widget.news?.chuDe ?? 'Knowledge';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _linkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final viewModel = context.read<NewsViewModel>();
+    final authViewModel = context.read<AuthViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final UserModels? currentUser = authViewModel.currentUser;
+    if (currentUser == null) {
+      messenger.showSnackBar(SnackBar(content: Text('auth.errors.user_not_found'.tr()), backgroundColor: Theme.of(context).colorScheme.error));
+      return;
+    }
+
+    final newsData = NewsModels(
+      uid: widget.isEditMode ? widget.news!.uid : '',
+      tenBaiViet: _titleController.text.trim(),
+      noiDungBaiViet: _contentController.text.trim(),
+      duongDan: _linkController.text.trim(),
+      chuDe: _selectedTopic,
+      createAt: widget.isEditMode ? widget.news!.createAt : DateTime.now(),
+      tacGia: widget.isEditMode ? widget.news!.tacGia : (currentUser.fullName ?? currentUser.email),
+    );
+
+    try {
+      if (widget.isEditMode) {
+        await viewModel.updateNews(newsData, newAttachment: _attachment);
+      } else {
+        await viewModel.addNews(newsData, currentUser, attachment: _attachment);
+      }
+      if (navigator.canPop()) navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error));
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final viewModel = context.read<NewsViewModel>();
+    final pickedFile = await viewModel.pickImageFromGallery();
+    if (pickedFile != null) {
+      setState(() {
+        _attachment = pickedFile;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final viewModel = context.watch<NewsViewModel>();
+
+    final topics = {
+      'Knowledge': 'news_management.topics.knowledge'.tr(),
+      'Study': 'news_management.topics.study'.tr(),
+    };
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 20),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.isEditMode ? 'news_management.edit_news_title'.tr() : 'news_management.add_news_title'.tr(),
+                style: theme.textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'news_management.title_label'.tr()),
+                validator: (v) => (v == null || v.isEmpty) ? 'news_management.error.title_required'.tr() : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _contentController,
+                decoration: InputDecoration(labelText: 'news_management.content_label'.tr()),
+                validator: (v) => (v == null || v.isEmpty) ? 'news_management.error.content_required'.tr() : null,
+                maxLines: 5,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _linkController,
+                decoration: InputDecoration(labelText: 'news_management.link_label'.tr()),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedTopic,
+                decoration: InputDecoration(labelText: 'news_management.topic_label'.tr()),
+                items: topics.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                onChanged: (value) => setState(() => _selectedTopic = value),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: Icon(_attachment == null ? Icons.attach_file : Icons.check_circle_outline),
+                label: Text(_attachment == null ? 'news_management.attachment_select_button'.tr() : 'news_management.attachment_selected_button'.tr()),
+              ),
+              if (_attachment != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('File: ${_attachment!.path.split('/').last}', style: theme.textTheme.bodySmall),
+                ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: viewModel.isUpdating ? null : _handleSave,
+                child: viewModel.isUpdating
+                    ? const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                    : Text(widget.isEditMode ? 'common.update'.tr() : 'common.add'.tr()),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

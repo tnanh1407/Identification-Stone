@@ -225,5 +225,59 @@
     "related_minerals": "Khoáng sản liên quan",
     "edit_button": "Chỉnh sửa",
     "delete_button": "Xóa"
+  },
+  "news_management": {
+    "title": "Quản lý Bài viết",
+    "list_title": "Danh sách Bài viết",
+    "search_hint": "Tìm kiếm theo tên, chủ đề...",
+    "sort_tooltip": "Sắp xếp danh sách",
+    "sort_newest": "Mới nhất trước",
+    "sort_oldest": "Cũ nhất trước",
+    "news_count": "Số lượng: {count}",
+    "add_news_tooltip": "Thêm bài viết mới",
+    "add_news_title": "Thêm bài viết mới",
+    "edit_news_title": "Chỉnh sửa bài viết",
+    "title_label": "Tên bài viết",
+    "content_label": "Nội dung",
+    "link_label": "Đường dẫn (tùy chọn)",
+    "topic_label": "Chủ đề",
+    "topics": {
+      "knowledge": "Kiến thức",
+      "study": "Học tập"
+    },
+    "attachment_select_button": "Chọn file đính kèm",
+    "attachment_selected_button": "Đã chọn file",
+    "error": {
+      "title_required": "Vui lòng nhập tên bài viết",
+      "content_required": "Vui lòng nhập nội dung"
+    }
+  },
+  "news_detail": {
+    "title": "Chi tiết Bài viết",
+    "topic": "Chủ đề",
+    "author": "Tác giả",
+    "content": "Nội dung",
+    "attachment": "File đính kèm",
+    "link": "Đường dẫn liên kết",
+    "no_link": "Không có",
+    "edit_button": "Chỉnh sửa",
+    "delete_button": "Xóa bài viết",
+    "delete_confirmation_content": "Bạn có chắc muốn xóa bài viết \"{title}\"?"
+  },
+  "splash_screen": {
+    "greeting": "Xin chào!",
+    "main_title": "Nghiên cứu khoa học",
+    "subtitle": "Nhận dạng đá, khoáng vật và pha lê độc quyền của bạn"
+  },
+  "onboarding": {
+    "page1_title": "Nhận dạng tức thì",
+    "page1_subtitle": "Chụp hoặc tải lên ảnh một viên đá để nhận dạng tên, loại và các thuộc tính của nó ngay lập tức.",
+    "page2_title": "Khám phá Bộ sưu tập",
+    "page2_subtitle": "Duyệt qua một bộ sưu tập đá và khoáng vật khổng lồ, được sắp xếp khoa học và dễ dàng tìm kiếm.",
+    "page3_title": "Tạo Bộ sưu tập riêng",
+    "page3_subtitle": "Lưu lại những viên đá bạn đã nhận dạng và tạo nên bộ sưu tập khoáng vật độc đáo của riêng bạn.",
+    "skip_button": "Bỏ qua",
+    "next_button": "Tiếp",
+    "done_button": "Bắt đầu"
   }
 }

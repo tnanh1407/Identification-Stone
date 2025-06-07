@@ -1,191 +1,145 @@
 import 'dart:io';
-
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Cần import để dùng trong try-catch
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rock_classifier/data/models/news_models.dart';
+import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/data/services/firebase_news_service.dart';
 
 class NewsViewModel with ChangeNotifier {
   final FirebaseNewsService _service = FirebaseNewsService();
+  final ImagePicker _picker = ImagePicker();
 
+  List<NewsModels> _originalNews = [];
   List<NewsModels> _news = [];
   List<NewsModels> get news => _news;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String? _error;
-  String? get error => _error;
+  bool _isUpdating = false;
+  bool get isUpdating => _isUpdating;
 
-  File? _selectedImage;
-  File? get selectedImage => _selectedImage;
-
-  // HIỂN THỊ
   Future<void> fetchNews() async {
+    // SỬA: Thay thế _setLoading(true)
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
-      _news = await _service.fetchNews();
+      _originalNews = await _service.fetchNews();
+      _news = List.from(_originalNews);
     } catch (e) {
-      _error = 'Lỗi $e';
-    }
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  // XÓA
-  Future<void> deleteNews(String uid) async {
-    try {
-      await _service.deleteNewsByUid(uid);
-      _news.removeWhere(
-        (element) => element.uid == uid,
-      );
-      notifyListeners();
-    } catch (e) {
-      _error = 'Lỗi xóa HÀM XÓA : $e';
+      debugPrint("Lỗi fetchNews: $e");
+    } finally {
+      // SỬA: Thay thế _setLoading(false)
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  // TÌM KIẾM
-  Future<void> searchNews(String keyword) async {
-    _isLoading = true;
+  Future<void> addNews(NewsModels news, UserModels currentUser, {File? attachment}) async {
+    _isUpdating = true;
     notifyListeners();
-    try {
-      _news = await _service.searchNews(keyword);
-    } catch (e) {
-      _error = 'LỖI TÌM KIẾM FILE NEWS VIEW MODEL : $e';
-    }
 
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  // THÊM KHÔNG ẢNH
-  Future<void> addNews(NewsModels news) async {
     try {
-      await _service.addNews(news);
+      final author = currentUser.fullName ?? currentUser.email;
+      var newsWithAuthor = news.copyWith(tacGia: author);
+
+      final newId = await _service.addNews(newsWithAuthor);
+
+      if (attachment != null) {
+        final fileUrl = await _service.uploadAttachment(attachment, newId);
+        newsWithAuthor = newsWithAuthor.copyWith(uid: newId, fileDinhKem: fileUrl);
+        await _service.updateNews(newsWithAuthor);
+      }
+
       await fetchNews();
     } catch (e) {
-      _error = 'LỖI THÊM ĐÁ KHÔNG KÈM HÌNH ẢNH $e';
+      debugPrint("Lỗi addNews: $e");
+      rethrow;
+    } finally {
+      _isUpdating = false;
       notifyListeners();
     }
   }
 
-  // SẮP XẾP SỚM NHẤT ĐẾN MUỘN NHẤT
-  void sortByCreatAtUp() {
-    _news.sort((a, b) => (a.createAt).compareTo(b.createAt));
+  Future<void> updateNews(NewsModels news, {File? newAttachment}) async {
+    // SỬA: Thay thế _setUpdating(true)
+    _isUpdating = true;
     notifyListeners();
-  }
 
-  void sortByCreatAtDown() {
-    _news.sort((a, b) => (b.createAt).compareTo(a.createAt));
-    notifyListeners();
-  }
+    try {
+      var newsToUpdate = news;
+      if (newAttachment != null) {
+        // SỬA: Chuyển logic xóa file cũ vào service nếu có thể,
+        // nhưng giữ ở đây cũng tạm chấp nhận được.
+        if (news.fileDinhKem != null && news.fileDinhKem!.isNotEmpty) {
+          try {
+            await FirebaseStorage.instance.refFromURL(news.fileDinhKem!).delete();
+          } catch (e) {
+            debugPrint("Không thể xóa file cũ: $e");
+          }
+        }
+        final fileUrl = await _service.uploadAttachment(newAttachment, news.uid);
+        newsToUpdate = news.copyWith(fileDinhKem: fileUrl);
+      }
 
-  // Hàm chọn ảnh từ thư viện hoặc camera
-  Future<void> pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      _selectedImage = File(pickedFile.path);
+      await _service.updateNews(newsToUpdate);
+      await fetchNews();
+    } catch (e) {
+      debugPrint("Lỗi updateNews: $e");
+      rethrow;
+    } finally {
+      // SỬA: Thay thế _setUpdating(false)
+      _isUpdating = false;
       notifyListeners();
     }
+  }
+
+  Future<void> deleteNews(NewsModels news) async {
+    // SỬA: Thay thế _setUpdating(true)
+    _isUpdating = true;
+    notifyListeners();
+
+    try {
+      await _service.deleteNews(news);
+      await fetchNews();
+    } catch (e) {
+      debugPrint("Lỗi deleteNews: $e");
+      rethrow;
+    } finally {
+      // SỬA: Thay thế _setUpdating(false)
+      _isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  void searchNews(String query) {
+    if (query.isEmpty) {
+      _news = List.from(_originalNews);
+    } else {
+      final lowerCaseQuery = query.toLowerCase();
+      _news = _originalNews.where((item) {
+        return item.tenBaiViet.toLowerCase().contains(lowerCaseQuery) || (item.chuDe?.toLowerCase().contains(lowerCaseQuery) ?? false);
+      }).toList();
+    }
+    notifyListeners();
+  }
+
+  void sortByCreateAt({bool ascending = false}) {
+    if (ascending) {
+      _news.sort((a, b) => a.createAt.compareTo(b.createAt));
+    } else {
+      _news.sort((a, b) => b.createAt.compareTo(a.createAt));
+    }
+    notifyListeners();
   }
 
   Future<File?> pickImageFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (pickedFile != null) {
       return File(pickedFile.path);
     }
     return null;
-  }
-
-  Future<File?> pickImageFromCamera() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      return File(pickedFile.path);
-    }
-    return null;
-  }
-
-  //Up load hình ảnh lên firestrore và trả về url
-  Future<String?> uploadImageToFirebase(String uid) async {
-    if (_selectedImage == null) return null;
-    try {
-      final ref = FirebaseStorage.instance.ref().child('baiBao/$uid/hinhAnh.jpg');
-      await ref.putFile(_selectedImage!);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      _error = 'Lỗi tải ẢNH LÊN SEVER:  $e';
-      notifyListeners();
-      return null;
-    }
-  }
-
-  // CẬP NHẬT
-  Future<void> updateNews(NewsModels news) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      await _service.updateNews(news); // Gọi phương thức updateRock trong Firebase service
-      // await fetchNews(); // Lấy lại danh sách đá sau khi cập nhật
-      await fetchNews();
-    } catch (e) {
-      _error = 'LỖI CẬP NHẬT BÀI VIẾT : $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  //HÀM CẬP NHẬT CÓ ẢNH
-
-  Future<void> updatenNewsWithImage(NewsModels news) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final imageUrl = await uploadImageToFirebase(news.uid);
-      if (imageUrl != null) {
-        // Cập nhật lại đá với URL ảnh mới
-        news = news.copyWith(fileDinhKem: imageUrl);
-      }
-
-      await _service.updateNews(news);
-      await fetchNews();
-    } catch (e) {
-      _error = 'Lỗi CẬP NHẬT CÓ ẢNH $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // THÊM CÓ ẢNH
-  Future<void> addNewsWithImage(NewsModels news) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final imageUrl = await uploadImageToFirebase(news.uid);
-      if (imageUrl != null) {
-        news = news.copyWith(fileDinhKem: imageUrl);
-      }
-      await _service.addNews(news);
-      await fetchNews();
-    } catch (e) {
-      _error = 'Lỗi THÊM BÀO BÁO CÓ ẢNH $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 }

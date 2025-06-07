@@ -225,5 +225,59 @@
     "related_minerals": "Related Minerals",
     "edit_button": "Edit",
     "delete_button": "Delete"
+  },
+  "news_management": {
+    "title": "News Management",
+    "list_title": "News List",
+    "search_hint": "Search by title, topic...",
+    "sort_tooltip": "Sort list",
+    "sort_newest": "Newest First",
+    "sort_oldest": "Oldest First",
+    "news_count": "Count: {count}",
+    "add_news_tooltip": "Add new article",
+    "add_news_title": "Add New Article",
+    "edit_news_title": "Edit Article",
+    "title_label": "Article Title",
+    "content_label": "Content",
+    "link_label": "Link (optional)",
+    "topic_label": "Topic",
+    "topics": {
+      "knowledge": "Knowledge",
+      "study": "Study"
+    },
+    "attachment_select_button": "Select Attachment",
+    "attachment_selected_button": "Attachment Selected",
+    "error": {
+      "title_required": "Please enter an article title",
+      "content_required": "Please enter the content"
+    }
+  },
+  "news_detail": {
+    "title": "Article Details",
+    "topic": "Topic",
+    "author": "Author",
+    "content": "Content",
+    "attachment": "Attachment",
+    "link": "Link",
+    "no_link": "None",
+    "edit_button": "Edit",
+    "delete_button": "Delete Article",
+    "delete_confirmation_content": "Are you sure you want to delete the article \"{title}\"?"
+  },
+  "splash_screen": {
+    "greeting": "Welcome!",
+    "main_title": "Scientific Research",
+    "subtitle": "Identify your exclusive rocks, minerals, and crystals"
+  },
+  "onboarding": {
+    "page1_title": "Instant Identification",
+    "page1_subtitle": "Snap or upload a photo of a rock to instantly identify its name, type, and properties.",
+    "page2_title": "Explore the Collection",
+    "page2_subtitle": "Browse a vast collection of rocks and minerals, scientifically organized and easy to search.",
+    "page3_title": "Create Your Collection",
+    "page3_subtitle": "Save the rocks you've identified and build your own unique mineral collection.",
+    "skip_button": "Skip",
+    "next_button": "Next",
+    "done_button": "Get Started"
   }
 }

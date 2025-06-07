@@ -1,204 +1,168 @@
-// import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
-// import 'package:rock_classifier/views/auth/register_page.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:dots_indicator/dots_indicator.dart';
+import 'package:rock_classifier/views/auth/login_page.dart'; // Import trang đăng nhập
 
-// class OnboardingScreen extends StatefulWidget {
-//   @override
-//   _OnboardingScreenState createState() => _OnboardingScreenState();
-// }
+// =======================================================================
+//                           MÀN HÌNH ONBOARDING
+// =======================================================================
 
-// class _OnboardingScreenState extends State<OnboardingScreen> {
-//   PageController _controller = PageController();
-//   int _currentIndex = 0;
+class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       body: Column(
-//         children: [
-//           Padding(
-//             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//               children: [
-//                 RichText(
-//                   text: TextSpan(
-//                     style: GoogleFonts.montserrat(
-//                       fontSize: 18,
-//                       color: Color(0xFFA0A0A1),
-//                     ),
-//                     children: [
-//                       TextSpan(
-//                         text: '${_currentIndex + 1}',
-//                         style: GoogleFonts.montserrat(
-//                           fontWeight: FontWeight.bold,
-//                           color: Colors.black,
-//                         ),
-//                       ),
-//                       TextSpan(text: '/3'),
-//                     ],
-//                   ),
-//                 ),
-//                 TextButton(
-//                   onPressed: () {
-//                     // Chuyển đến màn hình chính
-//                   },
-//                   child: Text(
-//                     'Bỏ qua',
-//                     style: GoogleFonts.montserrat(
-//                       fontSize: 18,
-//                       fontWeight: FontWeight.bold, // Làm đậm chữ
-//                       color: Colors.black,
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           //Phần PageView có hiệu ứng chuyển động
-//           Expanded(
-//             child: PageView.builder(
-//               controller: _controller,
-//               itemCount: 3,
-//               onPageChanged: (index) {
-//                 setState(() {
-//                   _currentIndex = index;
-//                 });
-//               },
-//               itemBuilder: (context, index) {
-//                 return AnimatedContainer(
-//                   duration: Duration(milliseconds: 500),
-//                   curve: Curves.easeInOut,
-//                   child: buildPage(
-//                     image: 'assets/intro${index + 1}.png',
-//                     title: index == 0
-//                         ? 'Tra cứu thông tin'
-//                         : index == 1
-//                             ? 'Nhận dạng hình ảnh'
-//                             : 'Bổ sung kiến thức',
-//                     description: index == 0
-//                         ? 'Khám phá và tra cứu thông tin về đá quý, bao gồm thành phần, hình dạng và nguồn gốc của chúng.'
-//                         : index == 1
-//                             ? 'Sử dụng công nghệ nhận dạng hình ảnh để nhận dạng và phân loại chính xác các loại đá khác nhau.'
-//                             : 'Cung cấp kiến thức chuyên sâu về đá quý và ứng dụng của chúng trong đời sống hàng ngày.',
-//                   ),
-//                 );
-//               },
-//             ),
-//           ),
-//           //Thanh điều hướng với animation
-//           Padding(
-//             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//               children: [
-//                 // Nút Trước
-//                 _currentIndex > 0
-//                     ? TextButton(
-//                         onPressed: () {
-//                           _controller.previousPage(duration: Duration(milliseconds: 400), curve: Curves.easeInOut);
-//                         },
-//                         child: Text(
-//                           'Trước',
-//                           style: GoogleFonts.montserrat(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold),
-//                         ),
-//                       )
-//                     : SizedBox(width: 60),
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
 
-//                 //Dot Indicator có animation chuyển động
-//                 Row(
-//                   children: List.generate(3, (index) {
-//                     return AnimatedContainer(
-//                       duration: Duration(milliseconds: 300),
-//                       margin: EdgeInsets.symmetric(horizontal: 6),
-//                       width: _currentIndex == index ? 20 : 8,
-//                       height: 8,
-//                       decoration: BoxDecoration(
-//                         color: _currentIndex == index ? Colors.black : Colors.grey,
-//                         borderRadius: BorderRadius.circular(4),
-//                       ),
-//                     );
-//                   }),
-//                 ),
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-//                 // Nút Tiếp hoặc Bắt Đầu
-//                 _currentIndex < 2
-//                     ? TextButton(
-//                         onPressed: () {
-//                           _controller.nextPage(duration: Duration(milliseconds: 400), curve: Curves.easeInOut);
-//                         },
-//                         child: Text(
-//                           'Tiếp',
-//                           style: GoogleFonts.montserrat(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold),
-//                         ),
-//                       ) // Nút "Bắt Đầu"
-//                     : TextButton(
-//                         onPressed: () {
-//                           Navigator.of(context).pushReplacement(_createRoute());
-//                         },
-//                         style: TextButton.styleFrom(
-//                           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-//                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-//                         ),
-//                         child: Text(
-//                           'Bắt Đầu',
-//                           style: GoogleFonts.montserrat(
-//                             fontSize: 18,
-//                             color: Colors.red,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-//                       ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(() {
+      if (_pageController.page != null) {
+        setState(() {
+          _currentPage = _pageController.page!.round();
+        });
+      }
+    });
+  }
 
-//   Route _createRoute() {
-//     return PageRouteBuilder(
-//       transitionDuration: Duration(milliseconds: 600), //Speed of transition
-//       pageBuilder: (context, animation, secondaryAnimation) => RegisterPage(),
-//       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-//         return FadeTransition(
-//           //Smooth fade-in effect
-//           opacity: animation,
-//           child: child,
-//         );
-//       },
-//     );
-//   }
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
-//   Widget buildPage({required String image, required String title, required String description}) {
-//     return Column(
-//       mainAxisAlignment: MainAxisAlignment.center,
-//       children: [
-//         Image.asset(image, width: 330, height: 220),
-//         SizedBox(height: 20),
-//         Text(
-//           title,
-//           style: GoogleFonts.montserrat(
-//             fontSize: 24, //Tiêu đề lớn hơn
-//             fontWeight: FontWeight.bold,
-//             color: Color(0xFF5A3D26), //Màu sắc theo yêu cầu
-//           ),
-//         ),
-//         SizedBox(height: 10),
-//         Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 20),
-//           child: Text(
-//             description,
-//             textAlign: TextAlign.center,
-//             style: GoogleFonts.montserrat(
-//               fontSize: 16, //Mô tả nhỏ hơn
-//               color: Color(0xFF5A3D26), //Màu xám nhạt
-//             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
+  void _onDone() {
+    // Sử dụng pushReplacement để người dùng không thể quay lại màn hình onboarding
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Danh sách các trang onboarding, bạn có thể thêm/bớt ở đây
+    final onboardingPages = [
+      _buildOnboardingPage(
+        context: context,
+        imagePath: 'assets/intro1.png', // Thay bằng đường dẫn ảnh của bạn
+        titleKey: 'onboarding.page1_title',
+        subtitleKey: 'onboarding.page1_subtitle',
+      ),
+      _buildOnboardingPage(
+        context: context,
+        imagePath: 'assets/intro2.png', // Thay bằng đường dẫn ảnh của bạn
+        titleKey: 'onboarding.page2_title',
+        subtitleKey: 'onboarding.page2_subtitle',
+      ),
+      _buildOnboardingPage(
+        context: context,
+        imagePath: 'assets/intro3.png', // Thay bằng đường dẫn ảnh của bạn
+        titleKey: 'onboarding.page3_title',
+        subtitleKey: 'onboarding.page3_subtitle',
+      ),
+    ];
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Nút Bỏ qua
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: _onDone,
+                child: Text('onboarding.skip_button'.tr()),
+              ),
+            ),
+            // Phần nội dung các trang
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                children: onboardingPages,
+              ),
+            ),
+            // Dấu chấm chỉ báo trang
+            DotsIndicator(
+              dotsCount: onboardingPages.length,
+              // SỬA: Chuyển _currentPage thành double
+              position: _currentPage.toDouble(),
+              decorator: DotsDecorator(
+                color: theme.colorScheme.secondary.withOpacity(0.3),
+                activeColor: theme.colorScheme.primary,
+                size: const Size.square(9.0),
+                activeSize: const Size(18.0, 9.0),
+                activeShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Nút Tiếp/Bắt đầu
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  if (_currentPage == onboardingPages.length - 1) {
+                    _onDone();
+                  } else {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                },
+                child: Text(
+                  _currentPage == onboardingPages.length - 1 ? 'onboarding.done_button'.tr() : 'onboarding.next_button'.tr(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget helper để xây dựng một trang onboarding
+  Widget _buildOnboardingPage({
+    required BuildContext context,
+    required String imagePath,
+    required String titleKey,
+    required String subtitleKey,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(imagePath, height: 250, errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 150)),
+          const SizedBox(height: 48),
+          Text(
+            titleKey.tr(),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            subtitleKey.tr(),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onBackground.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -82,7 +82,7 @@ class RockDetailScreen extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onError,
                 heroTag: 'delete_fab',
               ),
-            ],  
+            ],
           ),
         );
       },

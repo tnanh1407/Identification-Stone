@@ -159,4 +159,9 @@ class FirebaseService {
       throw Exception('Lỗi khi đổi mật khẩu: $e');
     }
   }
+
+  // Thêm hàm này vào file firebase_service.dart
+  Future<void> deleteAvatar(String url) async {
+    await FirebaseStorage.instance.refFromURL(url).delete();
+  }
 }

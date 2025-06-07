@@ -1,183 +1,64 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/data/services/firebase_service.dart';
 import 'package:rock_classifier/views/admin/users/view/user_data_management.dart';
+import 'package:image_picker/image_picker.dart';
 
 class UserListViewModel extends ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
+  final ImagePicker _picker = ImagePicker();
 
+  List<UserModels> _originalUsers = []; // Biến để lưu danh sách gốc
   List<UserModels> _users = [];
   List<UserModels> get users => _users;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String? _error;
-  String? get error => _error;
+  bool _isUpdating = false;
+  bool get isUpdating => _isUpdating;
 
-  UserModels? _selectedUser;
-  UserModels? get selectedUser => _selectedUser;
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
 
-  // Lấy tất cả người dùng
+  void _setUpdating(bool value) {
+    _isUpdating = value;
+    notifyListeners();
+  }
+
+  // --- CÁC HÀM LẤY DỮ LIỆU ---
+
   Future<void> fetchUser() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _setLoading(true);
     try {
-      _users = await _firebaseService.getUsers();
+      _originalUsers = await _firebaseService.getUsers();
+      _users = List.from(_originalUsers); // Sao chép danh sách gốc
     } catch (e) {
-      _error = e.toString();
+      debugPrint("Lỗi khi fetch user: $e");
+      _originalUsers = [];
+      _users = [];
     } finally {
-      _isLoading = false;
-      notifyListeners();
-      print('DU LIEU TRONG USER_LIST_VIEW ${_users.length}');
+      _setLoading(false);
     }
   }
 
-  Future<void> updateUser(UserModels user) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      await _firebaseService.updateUser(user);
-      await fetchUser(); // Cập nhật lại danh sách người dùng nếu cần
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+  void searchUsers(String query) {
+    if (query.isEmpty) {
+      _users = List.from(_originalUsers); // Nếu query rỗng, trả về danh sách gốc
+    } else {
+      final lowerCaseQuery = query.toLowerCase();
+      _users = _originalUsers.where((user) {
+        return (user.fullName?.toLowerCase().contains(lowerCaseQuery) ?? false) || user.email.toLowerCase().contains(lowerCaseQuery);
+      }).toList();
     }
-  }
-
-  // Cập nht người dùng kèm hình ảnh mới
-  Future<void> updateUserWithImage(UserModels user, File image) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final url = await _firebaseService.uploadAvatar(image, user.uid);
-      if (url != null) {
-        user.avatar = url;
-      }
-      await _firebaseService.updateUser(user);
-      await fetchUser();
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // Xóa người dùng
-  Future<void> deleteUser(UserModels user) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      await _firebaseService.deleteUser(user.uid);
-      _users.removeWhere(
-        (u) => u.uid == user.uid,
-      );
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // Tìm kiếm người dùng theo email
-  Future<void> searchUsers(String keyword) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      _users = await _firebaseService.searchName(keyword);
-    } catch (e) {
-      _error = e.toString();
-    }
-    _isLoading = false;
     notifyListeners();
   }
 
-  // Lấy người dùng theo UID
-  Future<void> getUserById(String uid) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      _selectedUser = await _firebaseService.getUserById(uid);
-    } catch (e) {
-      _error = e.toString();
-    }
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<File?> pickImageFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      return File(pickedFile.path);
-    }
-    return null;
-  }
-
-  Future<File?> pickImageFromCamera() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      return File(pickedFile.path);
-    }
-    return null;
-  }
-
-  Future<void> addUserWithoutAvatar(UserModels user) async {
-    try {
-      UserCredential result = await _firebaseService.createUserWithEmailAndPassword(
-        email: user.email,
-        password: 'tnanh1407', // Có thể thay bằng mật khẩu nhập từ form
-      );
-
-      user.uid = result.user!.uid;
-
-      await _firebaseService.addUser(user);
-
-      notifyListeners();
-    } catch (e) {
-      throw Exception('Lỗi khi thêm người dùng (không có ảnh): $e');
-    }
-  }
-
-  Future<void> addUserWithAvatar(UserModels user, File image) async {
-    try {
-      UserCredential result = await _firebaseService.createUserWithEmailAndPassword(email: user.email, password: 'tnanh1407');
-
-      user.uid = result.user!.uid;
-
-      final avatarUrl = await _firebaseService.uploadAvatar(image, user.uid);
-
-      if (avatarUrl != null) {
-        user.avatar = avatarUrl;
-
-        await _firebaseService.addUser(user);
-
-        notifyListeners();
-      } else {
-        throw Exception('Không thể tải ảnh lên Firebase Storage');
-      }
-    } catch (e) {
-      throw Exception('Lỗi khi thêm người dùng (có ảnh): $e');
-    }
-  }
-
-  // Sắp xếp danh sách người dùng
   void sortUsers(SortOption option) {
     switch (option) {
       case SortOption.createdAt:
@@ -187,9 +68,94 @@ class UserListViewModel extends ChangeNotifier {
         _users.sort((a, b) => a.role.compareTo(b.role));
         break;
       case SortOption.name:
-        _users.sort((a, b) => a.email.compareTo(b.email));
+        _users.sort((a, b) => (a.fullName ?? a.email).toLowerCase().compareTo((b.fullName ?? b.email).toLowerCase()));
         break;
     }
     notifyListeners();
+  }
+
+  // --- CÁC HÀM THÊM/SỬA/XÓA (ĐÃ GỘP LOGIC) ---
+
+  Future<void> addUser(UserModels user, File? image) async {
+    _setUpdating(true);
+    try {
+      // Logic tạo UserCredential được chuyển vào đây
+      UserCredential result = await _firebaseService.createUserWithEmailAndPassword(
+        email: user.email,
+        password: 'defaultPassword123', // Mật khẩu mặc định, hoặc lấy từ UI nếu có
+      );
+
+      final newUser = user.copyWith(uid: result.user!.uid); // Cập nhật UID từ Firebase Auth
+
+      String? avatarUrl;
+      if (image != null) {
+        avatarUrl = await _firebaseService.uploadAvatar(image, newUser.uid);
+      }
+
+      final userWithAvatar = newUser.copyWith(avatar: avatarUrl);
+      await _firebaseService.addUser(userWithAvatar); // Hàm này chỉ cần set data vào Firestore
+
+      await fetchUser(); // Tải lại danh sách sau khi thêm
+    } catch (e) {
+      debugPrint("Lỗi khi thêm user: $e");
+      rethrow; // Ném lại lỗi để UI có thể bắt và hiển thị
+    } finally {
+      _setUpdating(false);
+    }
+  }
+
+  Future<void> updateUserWithOptionalImage(UserModels user, File? image) async {
+    _setUpdating(true);
+    try {
+      UserModels userToUpdate = user; // Bắt đầu với user đã chứa các thay đổi từ UI
+
+      if (image != null) {
+        // Nếu có ảnh mới, upload và cập nhật avatarUrl vào đối tượng
+        final newAvatarUrl = await _firebaseService.uploadAvatar(image, user.uid);
+        userToUpdate = userToUpdate.copyWith(avatar: newAvatarUrl);
+      }
+
+      // Bây giờ userToUpdate đã chứa TẤT CẢ các thay đổi (text và ảnh mới nếu có)
+      await _firebaseService.updateUser(userToUpdate);
+
+      await fetchUser(); // Tải lại danh sách để UI cập nhật
+    } catch (e) {
+      debugPrint("Lỗi khi cập nhật user: $e");
+      rethrow;
+    } finally {
+      _setUpdating(false);
+    }
+  }
+
+  Future<void> deleteUser(UserModels user) async {
+    _setUpdating(true);
+    try {
+      if (user.avatar != null) {
+        try {
+          // FirebaseService nên có hàm xóa avatar
+          await _firebaseService.deleteAvatar(user.avatar!);
+        } catch (e) {
+          debugPrint("Không thể xóa avatar cũ: $e");
+        }
+      }
+      await _firebaseService.deleteUser(user.uid);
+
+      await fetchUser(); // Tải lại danh sách sau khi xóa
+    } catch (e) {
+      debugPrint("Lỗi khi xóa user: $e");
+      rethrow;
+    } finally {
+      _setUpdating(false);
+    }
+  }
+
+  // --- HÀM HELPER CHO HÌNH ẢNH ---
+
+  Future<File?> pickImageFromGallery() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (pickedFile != null) {
+      return File(pickedFile.path);
+    }
+    return null;
   }
 }

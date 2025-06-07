@@ -1,435 +1,207 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
+// lib/views/admin/users/view/user_detail_screen.dart
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/view_models/user_list_view_model.dart';
-import 'package:rock_classifier/views/admin/users/view/user_data_management.dart';
 
-class UserDetailScreen extends StatefulWidget {
-  final UserModels user;
+class UserDetailScreen extends StatelessWidget {
+  final String userId;
+  final VoidCallback onEditPressed;
+  final Future<bool> Function() onDeletePressed;
+
   const UserDetailScreen({
     super.key,
-    required this.user,
+    required this.userId,
+    required this.onEditPressed,
+    required this.onDeletePressed,
   });
 
   @override
-  State<UserDetailScreen> createState() => _UserDetailScreenState();
-}
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-class _UserDetailScreenState extends State<UserDetailScreen> {
-  Future<void> uploading() async {
-    final userListVM = Provider.of<UserListViewModel>(context, listen: false);
-    await userListVM.fetchUser(); // Gọi lại hàm fetch
-    final updatedUser = userListVM.users.firstWhere((u) => u.uid == widget.user.uid, orElse: () => widget.user);
+    return Consumer<UserListViewModel>(
+      builder: (context, viewModel, child) {
+        final user = viewModel.users.firstWhere(
+          (u) => u.uid == userId,
+          orElse: () => UserModels.empty,
+        );
 
-    setState(() {
-      widget.user.fullName = updatedUser.fullName;
-      widget.user.address = updatedUser.address;
-      widget.user.avatar = updatedUser.avatar;
-    });
+        if (user.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: Center(child: Text('auth.errors.user_not_found'.tr())),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: theme.colorScheme.background,
+          appBar: AppBar(
+            title: Text('user_management.detail_page.title'.tr()),
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildAvatarSection(context, user),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, icon: Icons.person_outline, titleKey: 'user_management.detail_page.info_section_title'),
+              _buildInfoCard(context, user),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, icon: Icons.settings_outlined, titleKey: 'user_management.detail_page.actions_section_title'),
+              _buildActions(context), // SỬA: Không cần truyền user nữa
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        centerTitle: true,
-        leading: const BackButton(color: Colors.white),
-        backgroundColor: Color(0xFFF7F7F7),
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  // ... (các hàm _build... khác giữ nguyên)
+
+  Widget _buildAvatarSection(BuildContext context, UserModels user) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            Hero(
+              tag: 'avatar-${user.uid}',
+              child: CircleAvatar(
+                radius: 60,
+                backgroundColor: theme.colorScheme.surfaceVariant,
+                backgroundImage: user.avatar != null && user.avatar!.isNotEmpty ? NetworkImage(user.avatar!) : null,
+                child: user.avatar == null || user.avatar!.isEmpty ? Icon(Icons.person, size: 70, color: theme.colorScheme.onSurfaceVariant) : null,
+              ),
             ),
-          ),
-        ),
-        title: Text(
-          "Thông tin người dùng chi tiết",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+            const SizedBox(height: 16),
+            Text(
+              user.fullName ?? 'common.no_data_available'.tr(),
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              user.email,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.secondary),
+            ),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildInfoCard(BuildContext context, UserModels user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _InfoRow(labelKey: 'admin_home.label_username', value: user.fullName ?? 'common.no_data_available'.tr()),
+            _InfoRow(labelKey: 'admin_home.label_email', value: user.email),
+            _InfoRow(labelKey: 'admin_home.label_address', value: user.address ?? 'common.no_data_available'.tr()),
+            _InfoRow(labelKey: 'admin_home.label_role', value: user.role),
+            _InfoRow(
+              labelKey: 'user_management.detail_page.created_at_label',
+              value: DateFormat('dd/MM/yyyy – HH:mm').format(user.createdAt),
+            ),
+            _InfoRow(labelKey: 'user_management.detail_page.favorite_rocks_label', value: '0'),
+            _InfoRow(labelKey: 'user_management.detail_page.collections_count_label', value: '0', hasDivider: false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, {required IconData icon, required String titleKey}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade100,
-                  blurRadius: 5,
-                )
-              ],
-            ),
-            child: Column(
-              children: [
-                Hero(
-                  tag: 'avatar-${widget.user.uid}',
-                  child: SizedBox(
-                    width: 140,
-                    height: 140,
-                    child: ClipOval(
-                      child: (widget.user.avatar != null && widget.user.avatar!.isNotEmpty)
-                          ? Image.network(
-                              widget.user.avatar!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey,
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Colors.white,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: Colors.grey,
-                              child: const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Ảnh đại diện',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // MÔ TẢ
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 20,
-                color: Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Thông tin người dùng',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
-              )
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Tên người dùng',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      widget.user.fullName ?? 'Chưa có dữ liệu',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Tài khoản đăng nhập',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      widget.user.email,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Vai trò',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      widget.user.role,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Địa chỉ',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      widget.user.address ?? 'Chưa có dữ liệu',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Thời gian tạo tài khoản',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      DateFormat('dd/MM/yyyy – HH:mm').format(widget.user.createdAt),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Số lượng đá yêu thích',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      '0',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Số lượng bộ sưu tập',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      '0',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.collections,
-                size: 20,
-                color: Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Danh sách bộ sưu tập',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
-              )
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Text(
-              'Chưa có dữ liệu',
-              style: TextStyle(fontSize: 14),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.favorite,
-                size: 20,
-                color: Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Chức Năng',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Text(
-              'Chưa có dữ liệu',
-              style: TextStyle(fontSize: 14),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.functions_sharp,
-                size: 20,
-                color: Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Chức năng',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.blue[100],
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
-                Navigator.pop(context);
-                showEditUserSheet(context, widget.user);
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Chỉnh sửa thông tin người dùng',
-                    style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.red[100],
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text("Xác nhận xóa", style: GoogleFonts.poppins()),
-                    content: Text("Bạn có chắc muốn xóa ${widget.user.email}?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text("Hủy"),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          try {
-                            await Provider.of<UserListViewModel>(context, listen: false).deleteUser(widget.user);
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Đã xóa người dùng"),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                          } catch (e) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Lỗi: $e", style: GoogleFonts.poppins()),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                          }
-                        },
-                        child: Text("Xóa", style: GoogleFonts.poppins(color: Colors.redAccent)),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Xóa tài khoản người dùng',
-                    style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ),
+          Icon(icon, color: theme.colorScheme.secondary, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            titleKey.tr(),
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.secondary),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Nút chỉnh sửa
+        ElevatedButton.icon(
+          icon: const Icon(Icons.edit_outlined),
+          label: Text('user_management.detail_page.edit_user_button'.tr()),
+          onPressed: onEditPressed, // Gọi callback
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.delete_outline),
+          label: Text('user_management.detail_page.delete_user_button'.tr()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+          ),
+          onPressed: () async {
+            // Chờ kết quả từ hàm onDeletePressed
+            final bool success = await onDeletePressed();
+
+            // Nếu xóa thành công và widget vẫn còn trên cây (mounted),
+            // thì pop màn hình này đ
+            if (success && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          }, // Gọi callback
+        ),
+      ],
+    );
+  }
+}
+
+// Widget con để hiển thị một dòng thông tin
+class _InfoRow extends StatelessWidget {
+  final String labelKey;
+  final String value;
+  final bool hasDivider;
+
+  const _InfoRow({required this.labelKey, required this.value, this.hasDivider = true});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                labelKey.tr(),
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.secondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (hasDivider) const Divider(height: 1),
+      ],
     );
   }
 }

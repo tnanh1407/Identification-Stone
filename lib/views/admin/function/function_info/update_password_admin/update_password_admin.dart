@@ -1,7 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
 
@@ -13,9 +11,10 @@ class UpdatePasswordAdmin extends StatefulWidget {
 }
 
 class _UpdatePasswordAdminState extends State<UpdatePasswordAdmin> {
-  final TextEditingController _passOldController = TextEditingController();
-  final TextEditingController _passNewController = TextEditingController();
-  final TextEditingController _passConfirmController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _passOldController = TextEditingController();
+  final _passNewController = TextEditingController();
+  final _passConfirmController = TextEditingController();
 
   @override
   void dispose() {
@@ -25,254 +24,173 @@ class _UpdatePasswordAdminState extends State<UpdatePasswordAdmin> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthViewModel>(
-      builder: (context, authViewModel, child) {
-        return Scaffold(
-          appBar: AppBar(
-            centerTitle: true,
-            backgroundColor: Color(0xFFF7F7F7),
-            elevation: 0,
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-            title: Text("textUpdatePsAdmin5".tr(), style: Theme.of(context).textTheme.titleLarge),
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
-          ),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                PasswordFormSection(
-                  passOldController: _passOldController,
-                  passNewController: _passNewController,
-                  passConfirmController: _passConfirmController,
-                  onSubmit: () => PasswordHandler.handlePass(
-                    context,
-                    authViewModel,
-                    _passOldController,
-                    _passNewController,
-                    _passConfirmController,
-                  ),
-                ),
-                LoadingIndicator(isLoading: authViewModel.isLoading),
-              ],
-            ),
+  Future<void> _handleUpdatePassword() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final oldPass = _passOldController.text.trim();
+    final newPass = _passNewController.text.trim();
+
+    bool success = await authViewModel.updatePassword(oldPass, newPass);
+
+    if (context.mounted) {
+      if (success) {
+        messenger.showSnackBar(
+          SnackBar(
+            // THAY ĐỔI: Dùng key dịch
+            content: Text('settings.change_password.update_success'.tr()),
+            backgroundColor: Colors.green,
           ),
         );
-      },
-    );
+        navigator.pop();
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            // THAY ĐỔI: Dùng key dịch và có fallback
+            content: Text(authViewModel.errorMessage ?? 'settings.change_password.update_failed_generic'.tr()),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
-}
-
-class PasswordFormSection extends StatelessWidget {
-  final TextEditingController passOldController;
-  final TextEditingController passNewController;
-  final TextEditingController passConfirmController;
-  final VoidCallback onSubmit;
-
-  const PasswordFormSection({
-    super.key,
-    required this.passOldController,
-    required this.passNewController,
-    required this.passConfirmController,
-    required this.onSubmit,
-  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade100,
-                spreadRadius: 2,
-                blurRadius: 5,
+    final theme = Theme.of(context);
+    final authViewModel = context.watch<AuthViewModel>();
+
+    return Scaffold(
+      appBar: AppBar(
+        // THAY ĐỔI: Dùng key dịch
+        title: Text("settings.change_password.title".tr()),
+      ),
+      backgroundColor: theme.colorScheme.background,
+      body: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildPasswordField(
+                      controller: _passOldController,
+                      // THAY ĐỔI: Dùng key dịch
+                      labelText: "settings.change_password.old_password_label".tr(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(
+                      controller: _passNewController,
+                      // THAY ĐỔI: Dùng key dịch
+                      labelText: "settings.change_password.new_password_label".tr(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(
+                      controller: _passConfirmController,
+                      // THAY ĐỔI: Dùng key dịch
+                      labelText: "settings.change_password.confirm_new_password_label".tr(),
+                      validator: (value) {
+                        if (value != _passNewController.text) {
+                          // THAY ĐỔI: Dùng key dịch
+                          return 'settings.change_password.password_mismatch_error'.tr();
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: authViewModel.isLoading ? null : _handleUpdatePassword,
+                      // THAY ĐỔI: Dùng key dịch
+                      child: Text("settings.change_password.save_button".tr()),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PasswordTextField(
-                controller: passOldController,
-                hintText: "textUpdatePsAdmin8".tr(),
-              ),
-              const SizedBox(height: 16),
-              PasswordTextField(
-                controller: passNewController,
-                hintText: "textUpdatePsAdmin9".tr(),
-              ),
-              const SizedBox(height: 16),
-              PasswordTextField(
-                controller: passConfirmController,
-                hintText: "textUpdatePsAdmin10".tr(),
-              ),
-              const SizedBox(height: 24),
-              SubmitButton(onSubmit: onSubmit),
-            ],
-          ),
-        ),
-      ],
+          if (authViewModel.isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.4),
+              child: Center(
+                  child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: Colors.white),
+                  const SizedBox(height: 16),
+                  Text("common.loading".tr(), style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white)),
+                ],
+              )),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String labelText,
+    String? Function(String?)? validator,
+  }) {
+    return _PasswordTextFieldInternal(
+      controller: controller,
+      labelText: labelText,
+      validator: validator,
     );
   }
 }
 
-class PasswordTextField extends StatefulWidget {
+class _PasswordTextFieldInternal extends StatefulWidget {
   final TextEditingController controller;
-  final String hintText;
+  final String labelText;
+  final String? Function(String?)? validator;
 
-  const PasswordTextField({
-    super.key,
+  const _PasswordTextFieldInternal({
     required this.controller,
-    required this.hintText,
+    required this.labelText,
+    this.validator,
   });
 
   @override
-  State<PasswordTextField> createState() => _PasswordTextFieldState();
+  State<_PasswordTextFieldInternal> createState() => _PasswordTextFieldInternalState();
 }
 
-class _PasswordTextFieldState extends State<PasswordTextField> {
+class _PasswordTextFieldInternalState extends State<_PasswordTextFieldInternal> {
   bool _obscureText = true;
-
-  void _toggleVisibility() {
-    setState(() {
-      _obscureText = !_obscureText;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscureText,
-      style: Theme.of(context).textTheme.titleSmall,
       decoration: InputDecoration(
-        hintText: widget.hintText,
-        hintStyle: Theme.of(context).textTheme.titleSmall,
+        labelText: widget.labelText,
         suffixIcon: IconButton(
-          icon: Icon(
-            _obscureText ? Icons.visibility_off : Icons.visibility,
-            color: Colors.grey[600],
-          ),
-          onPressed: _toggleVisibility,
-        ),
-        filled: true,
-        fillColor: Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: const BorderSide(color: Colors.brown, width: 2),
+          icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _obscureText = !_obscureText),
         ),
       ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          // THAY ĐỔI: Dùng key dịch
+          return 'settings.change_password.password_required_error'.tr();
+        }
+        if (value.length < 6) {
+          // THAY ĐỔI: Dùng key dịch
+          return 'settings.change_password.password_length_error'.tr();
+        }
+        if (widget.validator != null) {
+          return widget.validator!(value);
+        }
+        return null;
+      },
     );
-  }
-}
-
-class SubmitButton extends StatelessWidget {
-  final VoidCallback onSubmit;
-
-  const SubmitButton({super.key, required this.onSubmit});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueGrey,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          elevation: 2,
-        ),
-        onPressed: Provider.of<AuthViewModel>(context, listen: false).isLoading ? null : onSubmit,
-        child: Text(
-          "textUpdatePsAdmin6".tr(),
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
-      ),
-    );
-  }
-}
-
-class LoadingIndicator extends StatelessWidget {
-  final bool isLoading;
-
-  const LoadingIndicator({super.key, required this.isLoading});
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return const SizedBox.shrink();
-  }
-}
-
-class PasswordHandler {
-  static Future<void> handlePass(
-    BuildContext context,
-    AuthViewModel authViewModel,
-    TextEditingController passOldController,
-    TextEditingController passNewController,
-    TextEditingController passConfirmController,
-  ) async {
-    final oldPass = passOldController.text.trim();
-    final newPass = passNewController.text.trim();
-    final confirmPass = passConfirmController.text.trim();
-
-    if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('textUpdatePsAdmin1'.tr())),
-      );
-      return;
-    }
-
-    if (newPass != confirmPass) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('textUpdatePsAdmin2'.tr())),
-      );
-      return;
-    }
-
-    if (newPass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('textUpdatePsAdmin3'.tr())),
-      );
-      return;
-    }
-
-    final error = await authViewModel.updatePassword(oldPass, newPass);
-    if (error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('textUpdatePsAdmin4'.tr())),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
-    }
   }
 }

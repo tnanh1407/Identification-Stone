@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:easy_localization/easy_localization.dart'; // THÊM DÒNG NÀY
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
@@ -28,11 +29,23 @@ class AuthViewModel extends ChangeNotifier {
     return null;
   }
 
+  Future<void> _loadUserData(String uid) async {
+    try {
+      _currentUser = await _firebaseService.getUserById(uid);
+      _currentUserRole = _currentUser?.role;
+    } catch (e) {
+      // Xử lý trường hợp không lấy được user data, ví dụ user bị xóa trong DB
+      _currentUser = null;
+      _currentUserRole = null;
+      // THAY ĐỔI: Sử dụng key từ file JSON
+      _errorMessage = 'auth.errors.user_data_load_failed'.tr();
+    }
+  }
+
   AuthViewModel() {
     _firebaseService.auth.authStateChanges().listen((firebaseUser) async {
       if (firebaseUser != null) {
-        _currentUser = await _firebaseService.getUserById(firebaseUser.uid);
-        _currentUserRole = _currentUser?.role;
+        await _loadUserData(firebaseUser.uid); // Tái sử dụng hàm _loadUserData
       } else {
         _currentUser = null;
         _currentUserRole = null;
@@ -45,7 +58,7 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners(); // Thông báo cho UI biết quá trình
+    notifyListeners();
     try {
       await _firebaseService.signInWithEmailAndPassword(
         email: email,
@@ -53,25 +66,27 @@ class AuthViewModel extends ChangeNotifier {
       );
       final firebaseUser = _firebaseService.auth.currentUser;
       if (firebaseUser != null) {
-        _currentUser = await _firebaseService.getUserById(firebaseUser.uid);
-        _currentUserRole = _currentUser?.role; //Lấy role trực tiếp
+        await _loadUserData(firebaseUser.uid); // Tải dữ liệu người dùng
 
         if (_currentUserRole == null) {
-          _errorMessage = 'Không tìm thấy vai trò của người dùng';
+          // THAY ĐỔI: Sử dụng key từ file JSON
+          _errorMessage = 'auth.errors.user_role_not_found'.tr();
           return false;
         }
 
         _errorMessage = null;
         return true;
       } else {
-        _errorMessage = 'Không thể lấy thông tin người dùng';
+        // THAY ĐỔI: Sử dụng key từ file JSON
+        _errorMessage = 'auth.errors.user_info_fetch_failed'.tr();
         return false;
       }
     } on FirebaseAuthException catch (e) {
       _errorMessage = _handleFirebaseAuthError(e);
       return false;
     } catch (e) {
-      _errorMessage = 'Lỗi không xác định: $e';
+      // THAY ĐỔI: Sử dụng key từ file JSON với tham số
+      _errorMessage = 'common.error_unknown'.tr(namedArgs: {'error': e.toString()});
       return false;
     } finally {
       _isLoading = false;
@@ -79,10 +94,10 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Đăng kí tài khoản
-  Future<bool> signUp(String email, String password, String password2) async {
+  Future<bool> signUp(String email, String password, String password2, {String? fullName}) async {
     if (password != password2) {
-      _errorMessage = "Mật khẩu không khớp !";
+      // THAY ĐỔI: Sử dụng key từ file JSON
+      _errorMessage = 'auth.errors.password_mismatch'.tr();
       return false;
     }
     _isLoading = true;
@@ -97,7 +112,7 @@ class AuthViewModel extends ChangeNotifier {
       if (user != null) {
         UserModels newUser = UserModels(
           uid: user.uid,
-          fullName: null,
+          fullName: (fullName != null && fullName.isNotEmpty) ? fullName : null,
           address: null,
           email: email,
           avatar: null,
@@ -109,13 +124,15 @@ class AuthViewModel extends ChangeNotifier {
         _currentUserRole = newUser.role;
         return true;
       }
-      _errorMessage = "Không thể tạo tài khoản ";
+      // THAY ĐỔI: Sử dụng key từ file JSON
+      _errorMessage = 'auth.errors.account_creation_failed'.tr();
       return false;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _handleFirebaseAuthError(e);
       return false;
     } catch (e) {
-      _errorMessage = 'Lỗi không xác định: $e';
+      // THAY ĐỔI: Sử dụng key từ file JSON với tham số
+      _errorMessage = 'common.error_unknown'.tr(namedArgs: {'error': e.toString()});
       return false;
     } finally {
       _isLoading = false;
@@ -123,7 +140,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Đăng xuất
   Future<void> signOut() async {
     await _firebaseService.auth.signOut();
     _currentUser = null;
@@ -131,43 +147,48 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Cập nhật ngườu dùng
-  Future<void> updateUser(UserModels user) async {
+  Future<bool> updateUser(UserModels user) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
-      _isLoading = true;
-      notifyListeners();
       await _firebaseService.updateUser(user);
       _currentUser = user;
-      _errorMessage = null;
+      return true;
     } catch (e) {
-      _errorMessage = 'Lỗi cập nhật thông tin: $e';
+      // THAY ĐỔI: Sử dụng key từ file JSON với tham số
+      _errorMessage = 'common.error_update_failed'.tr(namedArgs: {'error': e.toString()});
+      return false;
     } finally {
       _isLoading = false;
-      notifyListeners(); // Cập nhật lại sau khi hoàn tất
+      notifyListeners();
     }
   }
 
-  // Tải ảnh lên ứng dụng
-  Future<String?> uploadAvatar(File image) async {
+  Future<bool> uploadAvatar(File image) async {
+    final uid = _firebaseService.auth.currentUser?.uid;
+    if (uid == null || _currentUser == null) {
+      // THAY ĐỔI: Sử dụng key từ file JSON
+      _errorMessage = 'auth.errors.user_not_found'.tr();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      notifyListeners();
-
-      final uid = _firebaseService.auth.currentUser?.uid;
-      // Kiểm tra ui người dùng
-      if (uid == null) {
-        _errorMessage = 'Không tìm thấy người dùng !';
-        return null;
-      }
-
       final url = await _firebaseService.uploadAvatar(image, uid);
-      if (url != null && _currentUser != null) {
-        await updateUser(_currentUser!.copyWith(avatar: url));
+      if (url != null) {
+        return await updateUser(_currentUser!.copyWith(avatar: url));
       }
-      return url;
+      // THAY ĐỔI: Sử dụng key từ file JSON
+      _errorMessage = 'auth.errors.avatar_url_failed'.tr();
+      return false;
     } catch (e) {
-      _errorMessage = 'Lỗi tải ảnh : $e';
-      return null;
+      // THAY ĐỔI: Sử dụng key từ file JSON với tham số
+      _errorMessage = 'common.error_upload_failed'.tr(namedArgs: {'error': e.toString()});
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -175,82 +196,69 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   String _handleFirebaseAuthError(FirebaseAuthException e) {
+    // THAY ĐỔI: Toàn bộ hàm này trả về các key đã được dịch
     switch (e.code) {
       case 'invalid-email':
-        return 'Email không hợp lệ';
+        return 'auth.errors.email_invalid'.tr();
       case 'email-already-in-use':
-        return 'Email đã được sử dụng';
+        return 'auth.errors.email_in_use'.tr();
       case 'weak-password':
-        return 'Mật khẩu quá yếu (ít nhất 6 ký tự)';
+        return 'auth.errors.password_length'.tr();
       case 'operation-not-allowed':
-        return 'Chức năng đăng ký bị vô hiệu hóa';
+        return 'auth.errors.operation_not_allowed'.tr();
       case 'network-request-failed':
-        return 'Không có kết nối mạng';
+        return 'common.error_network'.tr();
       case 'user-not-found':
       case 'wrong-password':
-        return 'Email hoặc mật khẩu không đúng';
+        return 'auth.errors.wrong_password'.tr();
       default:
-        return 'Đã xảy ra lỗi: ${e.message}';
+        return 'common.error_with_message'.tr(namedArgs: {'message': e.message ?? 'N/A'});
     }
   }
 
-  // Cập nhật password người dùng
-  Future<String?> updatePassword(String oldPassword, String newPassword) async {
+  Future<bool> updatePassword(String oldPassword, String newPassword) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      notifyListeners();
       final user = _firebaseService.auth.currentUser;
-      if (user == null) {
-        _errorMessage = 'Người dùng chưa đăng nhập';
-        return _errorMessage;
+      if (user == null || user.email == null) {
+        // THAY ĐỔI: Sử dụng key từ file JSON
+        _errorMessage = 'auth.errors.reauth_failed'.tr();
+        return false;
       }
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: oldPassword,
-      );
+      final cred = EmailAuthProvider.credential(email: user.email!, password: oldPassword);
       await user.reauthenticateWithCredential(cred);
       await user.updatePassword(newPassword);
-      _errorMessage = null;
-      return null;
+      return true;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _handleFirebaseAuthError(e);
-      return _errorMessage;
+      return false;
     } catch (e) {
-      _errorMessage = 'Lỗi không xác định: $e';
-      return _errorMessage;
+      // THAY ĐỔI: Sử dụng key từ file JSON với tham số
+      _errorMessage = 'common.error_unknown'.tr(namedArgs: {'error': e.toString()});
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> updateUserInfo({
-    required String fullName,
-    required String address,
-  }) async {
+// Gửi email đặt lại mật khẩu
+  Future<bool> sendPasswordResetEmail(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      notifyListeners();
-      final firebaseUser = _firebaseService.auth.currentUser;
-      if (firebaseUser == null) {
-        _errorMessage = 'Người dùng chưa đăng nhập';
-        return false;
-      }
-
-      // Cập nhật thông tin người dùng trong Firestore
-      if (_currentUser != null) {
-        final updatedUser = _currentUser!.copyWith(
-          fullName: fullName.isEmpty ? null : fullName,
-          address: address.isEmpty ? null : address,
-        );
-        await _firebaseService.updateUser(updatedUser);
-        _currentUser = updatedUser;
-      }
-
-      _errorMessage = null;
-      return true;
+      await _firebaseService.auth.sendPasswordResetEmail(email: email);
+      return true; // Gửi thành công
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _handleFirebaseAuthError(e); // Tái sử dụng hàm xử lý lỗi
+      return false;
     } catch (e) {
-      _errorMessage = 'Lỗi cập nhật thông tin: $e';
+      _errorMessage = 'common.error_unknown'.tr(namedArgs: {'error': e.toString()});
       return false;
     } finally {
       _isLoading = false;

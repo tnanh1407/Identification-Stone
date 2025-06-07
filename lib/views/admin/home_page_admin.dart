@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rock_classifier/data/models/user_models.dart'; // Import model để ép kiểu tường minh
 import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/views/admin/news/news_data_management.dart';
 import 'package:rock_classifier/views/admin/rocks/rock_list_screen.dart';
@@ -11,77 +12,69 @@ class HomePageAdmin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // THAY ĐỔI: Lấy theme một lần ở đây để sử dụng cho toàn bộ trang
+    final theme = Theme.of(context);
+
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, child) {
-        // Kiểm tra trạng thái
         if (authViewModel.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
         if (authViewModel.currentUser == null) {
-          return Center(child: Text("no_data_available".tr()));
+          // THAY ĐỔI: Sử dụng key chính thức
+          return Center(child: Text("common.no_data_available".tr()));
         }
 
         final user = authViewModel.currentUser!;
         return Scaffold(
+          // THAY ĐỔI: AppBar tự động nhận style từ appBarTheme.
+          // Không cần khai báo backgroundColor, flexibleSpace, elevation nữa.
           appBar: AppBar(
             automaticallyImplyLeading: false,
-            centerTitle: true,
-            backgroundColor: Color(0xFFF7F7F7),
-            elevation: 0,
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-            title: Text("textHomeAdmin1".tr(), style: Theme.of(context).textTheme.titleLarge),
+            // THAY ĐỔI: Sử dụng key 'admin_home.title'
+            title: Text("admin_home.title".tr()),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: Padding(
-            padding: const EdgeInsets.all(20),
+          // THAY ĐỔI: Sử dụng màu nền chung của theme
+          backgroundColor: theme.colorScheme.background,
+          body: SingleChildScrollView(
+            // Thêm SingleChildScrollView để tránh tràn màn hình
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                LabelText1(value: "textHomeAdmin2".tr()),
+                // THAY ĐỔI: Dùng key 'admin_home.user_info_card_title'
+                LabelText(value: "admin_home.user_info_card_title".tr()),
                 const SizedBox(height: 16),
                 UserInfoCard(user: user),
                 const SizedBox(height: 28),
-                LabelText1(value: 'textHomeAdmin3'.tr()),
-                SizedBox(height: 16),
+                // THAY ĐỔI: Dùng key 'admin_home.functions_card_title'
+                LabelText(value: 'admin_home.functions_card_title'.tr()),
+                const SizedBox(height: 16),
                 FunctionButton(
-                  title: 'textHomeAdmin6'.tr(),
+                  // THAY ĐỔI: Dùng key 'admin_home.manage_accounts'
+                  title: 'admin_home.manage_accounts'.tr(),
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => UserDataManagement(),
-                    ),
+                    MaterialPageRoute(builder: (context) => UserDataManagement()),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 FunctionButton(
-                  title: 'textHomeAdmin7'.tr(),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RockListScreen(),
-                        ));
-                  },
+                  // THAY ĐỔI: Dùng key 'admin_home.manage_data'
+                  title: 'admin_home.manage_data'.tr(),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RockListScreen()),
+                  ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 FunctionButton(
-                  title: 'textHomeAdmin8'.tr(),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NewsDataManagement(),
-                      ),
-                    );
-                  },
+                  // THAY ĐỔI: Dùng key 'admin_home.manage_blogs'
+                  title: 'admin_home.manage_blogs'.tr(),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NewsDataManagement()),
+                  ),
                 ),
               ],
             ),
@@ -92,28 +85,34 @@ class HomePageAdmin extends StatelessWidget {
   }
 }
 
-// ignore: camel_case_types
-class rowInfo extends StatelessWidget {
+// --- CÁC WIDGET CON ĐÃ ĐƯỢC "THEME HÓA" ---
+
+class RowInfo extends StatelessWidget {
   final String label;
   final String value;
 
-  const rowInfo({super.key, required this.label, required this.value});
+  const RowInfo({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$label: ',
-            style: Theme.of(context).textTheme.bodyMedium,
+            '$label:',
+            // THAY ĐỔI: Dùng bodyMedium cho label, phù hợp hơn
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodySmall,
+              // THAY ĐỔI: Dùng bodyMedium màu nhạt hơn cho value
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
             ),
@@ -128,49 +127,34 @@ class FunctionButton extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const FunctionButton({
-    super.key,
-    required this.title,
-    required this.onTap,
-  });
+  const FunctionButton({super.key, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-        color: Colors.white,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                Icon(
-                  Icons.arrow_forward,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-              ],
-            ),
+    final theme = Theme.of(context);
+    // THAY ĐỔI: Dùng Card để tự động lấy style từ cardTheme
+    return Card(
+      // Để hiệu ứng InkWell không bị tràn ra ngoài Card, chúng ta cần set clipBehavior.
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                // Lấy style titleMedium từ theme
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                // Lấy màu phụ từ theme
+                color: theme.colorScheme.secondary,
+                size: 18,
+              ),
+            ],
           ),
         ),
       ),
@@ -178,26 +162,28 @@ class FunctionButton extends StatelessWidget {
   }
 }
 
-// label Thông tin người dùng
-class LabelText1 extends StatelessWidget {
+class LabelText extends StatelessWidget {
   final String value;
-  const LabelText1({super.key, required this.value});
+  const LabelText({super.key, required this.value});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // THAY ĐỔI: Đã được theme hóa hoàn toàn
     return Row(
       children: [
         Icon(
-          Icons.person,
+          Icons.label_important_outline,
+          // Lấy màu chính từ theme
+          color: theme.colorScheme.primary,
+          size: 22,
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          // Dùng style headlineMedium đã định nghĩa trong theme
+          // (fontSize: 18, fontWeight: FontWeight.bold)
+          style: theme.textTheme.headlineMedium,
         ),
       ],
     );
@@ -205,92 +191,59 @@ class LabelText1 extends StatelessWidget {
 }
 
 class UserInfoCard extends StatelessWidget {
-  final dynamic user;
-  const UserInfoCard({super.key, this.user});
+  // THAY ĐỔI: Ép kiểu tường minh để code an toàn hơn
+  final UserModels user;
+  const UserInfoCard({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 72,
-            height: 72,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Avatar nền
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: Colors.grey,
-                  child: user.avatar == null
-                      ? Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 40,
-                        )
-                      : null,
-                ),
-                // Nếu có avatar, tải ảnh từ mạng
-                if (user.avatar != null)
-                  ClipOval(
-                    child: Image.network(
-                      user.avatar!,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                                : null,
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.error, color: Colors.white);
-                      },
-                    ),
+    final theme = Theme.of(context);
+
+    // THAY ĐỔI: Dùng Card để tự động lấy style từ cardTheme
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              // THAY ĐỔI: Dùng màu phụ từ theme làm nền
+              backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
+              radius: 36,
+              // THAY ĐỔI: Dùng ảnh từ mạng hoặc icon mặc định
+              backgroundImage: user.avatar != null ? NetworkImage(user.avatar!) : null,
+              child: user.avatar == null
+                  ? Icon(
+                      Icons.person,
+                      // Lấy màu trên nền phụ từ theme
+                      color: theme.colorScheme.secondary,
+                      size: 40,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // THAY ĐỔI: Sử dụng widget RowInfo và các key dịch chính thức
+                  RowInfo(label: 'admin_home.label_email'.tr(), value: user.email),
+                  RowInfo(
+                    label: 'admin_home.label_username'.tr(),
+                    value: user.fullName ?? "common.no_data_available".tr(),
                   ),
-              ],
+                  RowInfo(
+                    label: 'admin_home.label_address'.tr(),
+                    value: user.address ?? 'common.no_data_available'.tr(),
+                  ),
+                  RowInfo(
+                    label: 'admin_home.label_role'.tr(),
+                    value: user.role,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                rowInfo(label: 'textHomeAdmin4'.tr(), value: user.email),
-                rowInfo(
-                  label: 'textHomeAdmin5'.tr(),
-                  value: user.fullName ?? "no_data_available".tr(),
-                ),
-                rowInfo(label: 'textHomeAdmin10'.tr(), value: user.address ?? 'no_data_available'.tr()),
-                rowInfo(
-                  label: 'textHomeAdmin11'.tr(),
-                  value: user.role ?? 'no_data_available'.tr(),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -4,46 +4,90 @@ import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
 
+// Hàm helper để gọi BottomSheet
 void editUserInfoBottomSheet(BuildContext context, UserModels user) {
-  final fullNameController = TextEditingController(text: user.fullName ?? '');
-  final addressController = TextEditingController(text: user.address ?? '');
-  final formKey = GlobalKey<FormState>();
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(24),
-      ),
-    ),
-    builder: (context) {
-      return BottomSheetContent(
-        formKey: formKey,
-        fullNameController: fullNameController,
-        addressController: addressController,
-        user: user,
-      );
-    },
+    shape: Theme.of(context).bottomSheetTheme.shape,
+    backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
+    builder: (_) => EditUserInfoForm(user: user),
   );
 }
 
-class BottomSheetContent extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController fullNameController;
-  final TextEditingController addressController;
+// --- WIDGET CHÍNH: MỘT STATEFULWIDGET ĐỘC LẬP ---
+class EditUserInfoForm extends StatefulWidget {
   final UserModels user;
 
-  const BottomSheetContent({
-    super.key,
-    required this.formKey,
-    required this.fullNameController,
-    required this.addressController,
-    required this.user,
-  });
+  const EditUserInfoForm({super.key, required this.user});
+
+  @override
+  State<EditUserInfoForm> createState() => _EditUserInfoFormState();
+}
+
+class _EditUserInfoFormState extends State<EditUserInfoForm> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _fullNameController;
+  late final TextEditingController _addressController;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullNameController = TextEditingController(text: widget.user.fullName ?? '');
+    _addressController = TextEditingController(text: widget.user.address ?? '');
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  // --- LOGIC XỬ LÝ ---
+  Future<void> _handleUpdateUser() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final updatedUser = widget.user.copyWith(
+      fullName: _fullNameController.text.trim(),
+      address: _addressController.text.trim(),
+    );
+
+    bool success = await authViewModel.updateUser(updatedUser);
+
+    if (context.mounted) {
+      if (success) {
+        navigator.pop();
+        messenger.showSnackBar(
+          SnackBar(
+            // THAY ĐỔI: Dùng key dịch
+            content: Text('settings.edit_info_dialog.update_success'.tr()),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            // THAY ĐỔI: Dùng key dịch và có fallback
+            content: Text(authViewModel.errorMessage ?? 'settings.edit_info_dialog.update_failed'.tr()),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final authViewModel = context.watch<AuthViewModel>();
+
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -52,182 +96,57 @@ class BottomSheetContent extends StatelessWidget {
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: Form(
-        key: formKey,
+        key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Căn chỉnh nút cho đẹp
           children: [
-            DragHandle(),
-            TitleText(),
+            Center(
+              // Đặt thanh kéo ra giữa
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // THAY ĐỔI: Dùng key dịch
+            Text(
+              'settings.edit_info_dialog.title'.tr(),
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            TextFormField(
+              controller: _fullNameController,
+              // THAY ĐỔI: Dùng key dịch
+              decoration: InputDecoration(labelText: 'settings.edit_info_dialog.fullname_label'.tr()),
+              // THAY ĐỔI: Dùng key dịch
+              validator: (value) => value == null || value.isEmpty ? 'settings.edit_info_dialog.fullname_required_error'.tr() : null,
+            ),
             const SizedBox(height: 20),
-            FullNameField(controller: fullNameController),
-            const SizedBox(height: 20),
-            AddressField(controller: addressController),
-            const SizedBox(height: 20),
-            SaveButton(
-              formKey: formKey,
-              fullNameController: fullNameController,
-              addressController: addressController,
-              user: user,
+
+            TextFormField(
+              controller: _addressController,
+              // THAY ĐỔI: Dùng key dịch
+              decoration: InputDecoration(labelText: 'settings.edit_info_dialog.address_label'.tr()),
+            ),
+            const SizedBox(height: 24),
+
+            ElevatedButton.icon(
+              onPressed: authViewModel.isLoading ? null : _handleUpdateUser,
+              icon: authViewModel.isLoading ? const SizedBox.shrink() : const Icon(Icons.save),
+              // THAY ĐỔI: Dùng key dịch
+              label: authViewModel.isLoading
+                  ? const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                  : Text('settings.edit_info_dialog.save_button'.tr()),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class DragHandle extends StatelessWidget {
-  const DragHandle({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 50,
-      height: 5,
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondary,
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-}
-
-class TitleText extends StatelessWidget {
-  const TitleText({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'textEditAdmin_dialog1'.tr(),
-      style: Theme.of(context).textTheme.bodyLarge,
-    );
-  }
-}
-
-class FullNameField extends StatelessWidget {
-  final TextEditingController controller;
-
-  const FullNameField({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      style: Theme.of(context).textTheme.titleSmall,
-      validator: (value) => value == null || value.isEmpty ? 'textEditAdmin_dialog5'.tr() : null,
-      decoration: InputDecoration(
-        labelText: 'textEditAdmin_dialog2'.tr(),
-        labelStyle: Theme.of(context).textTheme.titleSmall,
-        filled: true,
-        fillColor: Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: const BorderSide(color: Colors.brown, width: 2),
-        ),
-      ),
-    );
-  }
-}
-
-class AddressField extends StatelessWidget {
-  final TextEditingController controller;
-
-  const AddressField({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      style: Theme.of(context).textTheme.titleSmall,
-      decoration: InputDecoration(
-        labelText: 'textEditAdmin_dialog3'.tr(),
-        labelStyle: Theme.of(context).textTheme.titleSmall,
-        filled: true,
-        fillColor: Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25.0),
-          borderSide: const BorderSide(color: Colors.brown, width: 2),
-        ),
-      ),
-    );
-  }
-}
-
-class SaveButton extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController fullNameController;
-  final TextEditingController addressController;
-  final UserModels user;
-
-  const SaveButton({
-    super.key,
-    required this.formKey,
-    required this.fullNameController,
-    required this.addressController,
-    required this.user,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthViewModel>(
-      builder: (context, authViewModel, child) => SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            if (formKey.currentState!.validate()) {
-              final updateUser = UserModels(
-                uid: user.uid,
-                email: user.email,
-                role: user.role,
-                createdAt: user.createdAt,
-                fullName: fullNameController.text.trim(),
-                address: addressController.text.trim(),
-                avatar: user.avatar,
-              );
-
-              await authViewModel.updateUser(updateUser);
-              Navigator.of(context).pop();
-              if (authViewModel.errorMessage == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('textEditAdmin_dialog6'.tr()),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Không thành công! ${authViewModel.errorMessage}'),
-                  ),
-                );
-              }
-            }
-          },
-          icon: const Icon(
-            Icons.save,
-            color: Colors.white,
-          ),
-          label: Text(
-            'textEditAdmin_dialog4'.tr(),
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-          ),
         ),
       ),
     );

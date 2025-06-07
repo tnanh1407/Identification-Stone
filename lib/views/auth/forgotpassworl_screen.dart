@@ -1,135 +1,150 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:rock_classifier/view_models/auth_view_model.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
+
+  @override
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
+}
+
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+
+  Future<void> _handleSendResetLink() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final theme = Theme.of(context);
+
+    bool success = await authViewModel.sendPasswordResetEmail(_emailController.text.trim());
+
+    if (success) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('auth.forgot_password.reset_link_sent_success'.tr()),
+          backgroundColor: Colors.green,
+        ),
+      );
+      // Quay lại trang đăng nhập sau khi gửi thành công
+      navigator.pop();
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(authViewModel.errorMessage ?? 'auth.forgot_password.reset_failed_generic'.tr()),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final authViewModel = context.watch<AuthViewModel>();
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Quên",
-                  style: GoogleFonts.montserrat(
-                    fontSize: 48, //Tăng kích thước chữ
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 1.2, //Điều chỉnh khoảng cách dòng
-                    letterSpacing: 1.5, //Làm chữ trông cân đối hơn
-                    shadows: [
-                      Shadow(
-                        color: Colors.black
-                            .withOpacity(0.2), //Đổ bóng nhẹ để nhìn sang trọng
-                        offset: Offset(2, 2),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  "Mật khẩu",
-                  style: GoogleFonts.montserrat(
-                    fontSize: 48, //Kích thước lớn hơn
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 1.2,
-                    letterSpacing: 1.5,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withOpacity(0.2),
-                        offset: Offset(2, 2),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 32),
-
-            // Ô nhập Email
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Nhập địa chỉ Email của bạn",
-                hintStyle: GoogleFonts.montserrat(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-                prefixIcon: Icon(
-                  Icons.email,
-                  color: Color(0xFF626262), //Màu xám 626262
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                      color: Color(0xFF626262)), //Đổi màu viền thành 626262
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            SizedBox(height: 12),
-
-            // Ghi chú nhỏ về cách nhận mật khẩu mới
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "* ",
-                  style: GoogleFonts.montserrat(
-                    color: Colors.red,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    "Chúng tôi sẽ gửi cho bạn một tin nhắn để đặt hoặc đặt lại mật khẩu mới của bạn",
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      color: Color(0xFF676767),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-
-            // Nút Gửi
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Xử lý gửi yêu cầu đặt lại mật khẩu
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFFF0000),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: Text(
-                  "Gửi",
-                  style: GoogleFonts.montserrat(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: theme.colorScheme.background,
+      appBar: AppBar(
+        title: Text('auth.forgot_password.title'.tr()),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: theme.colorScheme.primary,
       ),
+      body: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildTitle(theme),
+                    const SizedBox(height: 16),
+                    _buildInstruction(theme),
+                    const SizedBox(height: 32),
+                    _buildEmailField(theme),
+                    const SizedBox(height: 32),
+                    _buildSendButton(authViewModel.isLoading),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (authViewModel.isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 16),
+                    Text('common.loading'.tr(), style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTitle(ThemeData theme) {
+    return Text(
+      'auth.forgot_password.title'.tr(),
+      textAlign: TextAlign.center,
+      style: theme.textTheme.displaySmall?.copyWith(
+        color: theme.colorScheme.primary,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildInstruction(ThemeData theme) {
+    return Text(
+      'auth.forgot_password.instruction'.tr(),
+      textAlign: TextAlign.center,
+      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
+    );
+  }
+
+  Widget _buildEmailField(ThemeData theme) {
+    return TextFormField(
+      controller: _emailController,
+      decoration: InputDecoration(
+        labelText: 'auth.login.email_hint'.tr(), // Tái sử dụng hint từ trang login
+        prefixIcon: Icon(Icons.email_outlined, color: theme.colorScheme.secondary),
+      ),
+      keyboardType: TextInputType.emailAddress,
+      validator: (value) {
+        if (value == null || value.isEmpty || !value.contains('@')) {
+          return 'auth.errors.email_invalid'.tr();
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildSendButton(bool isLoading) {
+    return ElevatedButton(
+      onPressed: isLoading ? null : _handleSendResetLink,
+      child: Text('auth.forgot_password.send_button'.tr()),
     );
   }
 }

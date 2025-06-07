@@ -118,7 +118,12 @@
       "password_mismatch_error": "Confirmation password does not match",
       "update_success": "Password changed successfully!",
       "update_failed_generic": "Failed to change password. Please try again."
-    }
+    },
+    "theme_settings_title": "Theme Settings",
+    "theme_mode_label": "Display Mode",
+    "theme_mode_system": "System Default",
+    "theme_mode_light": "Light",
+    "theme_mode_dark": "Dark"
   },
   "user_management": {
     "title": "User Management",

@@ -5,6 +5,7 @@ import 'package:rock_classifier/views/admin/function/function_info/update_inform
 import 'package:rock_classifier/views/admin/function/function_interface/interface_language/language_screen.dart';
 import 'package:rock_classifier/data/models/user_models.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
+import 'package:rock_classifier/views/admin/function/function_interface/interface_language/theme_settings_screen.dart';
 import 'package:rock_classifier/views/auth/login_page.dart';
 
 class InformationPageAdmin extends StatelessWidget {
@@ -194,7 +195,6 @@ class SettingsSection extends StatelessWidget {
               _buildMenuItem(
                 context: context,
                 icon: Icons.language_outlined,
-                // THAY ĐỔI: Dùng key dịch
                 text: "settings.language".tr(),
                 onTap: () {
                   Navigator.push(
@@ -210,9 +210,11 @@ class SettingsSection extends StatelessWidget {
                 // THAY ĐỔI: Dùng key dịch
                 text: "settings.theme".tr(),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chức năng đang phát triển')),
-                  );
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ThemeSettingsScreen(),
+                      ));
                 },
               ),
             ],

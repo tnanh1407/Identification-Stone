@@ -1,7 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:dots_indicator/dots_indicator.dart';
-import 'package:rock_classifier/views/auth/login_page.dart'; // Import trang đăng nhập
+import 'package:rock_classifier/views/auth/login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import trang đăng nhập
 
 // =======================================================================
 //                           MÀN HÌNH ONBOARDING
@@ -36,11 +37,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _onDone() {
-    // Sử dụng pushReplacement để người dùng không thể quay lại màn hình onboarding
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+  void _onDone() async {
+    // Chuyển thành async
+    // Lưu lại là người dùng đã xem onboarding
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', true);
+
+    if (mounted) {
+      // Sau khi xem onboarding, luôn đi đến trang Login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
   }
 
   @override

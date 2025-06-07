@@ -118,7 +118,12 @@
       "password_mismatch_error": "Mật khẩu xác nhận không khớp",
       "update_success": "Đổi mật khẩu thành công!",
       "update_failed_generic": "Đổi mật khẩu thất bại. Vui lòng thử lại."
-    }
+    },
+    "theme_settings_title": "Cài đặt Chủ đề",
+    "theme_mode_label": "Các chế độ hiển thị",
+    "theme_mode_system": "Mặc định hệ thống",
+    "theme_mode_light": "Sáng",
+    "theme_mode_dark": "Tối"
   },
   "user_management": {
     "title": "Quản lý người dùng",

@@ -21,6 +21,14 @@ class AuthViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  Future<void> loadCurrentUser() async {
+    final firebaseUser = _firebaseService.auth.currentUser;
+    if (firebaseUser != null) {
+      await _loadUserData(firebaseUser.uid);
+      notifyListeners();
+    }
+  }
+
   Future<UserModels?> getCurrentUser() async {
     final firebaseUser = _firebaseService.auth.currentUser;
     if (firebaseUser != null) {

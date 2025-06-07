@@ -1,668 +1,272 @@
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/rock_models.dart';
+import 'package:rock_classifier/view_models/rock_view_model.dart';
+import 'package:rock_classifier/views/admin/rocks/add_edit_rock_sheet.dart';
+import 'package:rock_classifier/views/admin/rocks/rock_management_dialogs.dart';
 
-class RockDetailScreen extends StatefulWidget {
-  final RockModels rock;
+class RockDetailScreen extends StatelessWidget {
+  final String rockId;
 
-  const RockDetailScreen({super.key, required this.rock});
+  const RockDetailScreen({super.key, required this.rockId});
 
-  @override
-  State<RockDetailScreen> createState() => _RockDetailScreenState();
-}
-
-class _RockDetailScreenState extends State<RockDetailScreen> {
-  late List<bool> isExpandedList;
-
-  @override
-  void initState() {
-    super.initState();
-    isExpandedList = List.generate(widget.rock.cauHoi!.length, (_) => false);
-  }
+// trong file RockDetailScreen.dart
 
   @override
   Widget build(BuildContext context) {
-    Widget buildImageBox(String? imagePath) {
-      return Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: imagePath == null ? Colors.grey : null,
-          borderRadius: BorderRadius.circular(20),
-          image: imagePath != null ? DecorationImage(image: NetworkImage(imagePath), fit: BoxFit.cover) : null,
-        ),
-        child: imagePath == null
-            ? const Icon(
-                Icons.image_not_supported,
-                size: 30,
-                color: Colors.black45,
-              )
-            : null,
-      );
-    }
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          "Chi tiết thẻ đá ${widget.rock.tenDa}",
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.blue,
-        leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-            )),
-      ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 4),
-          // ảnh lớn nhất
-          if (widget.rock.hinhAnh != null && widget.rock.hinhAnh!.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(0),
-              child: Image.network(
-                widget.rock.hinhAnh!.first,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 100),
-              ),
-            ),
-          const SizedBox(height: 16),
+    return Consumer<RockViewModel>(
+      builder: (context, viewModel, child) {
+        final rock = viewModel.rocks.firstWhere(
+          (r) => r.uid == rockId,
+          orElse: () => RockModels.empty,
+        );
 
-          //  TÊN ĐÁ
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              widget.rock.tenDa ?? "Không tên",
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-          ),
+        if (rock.isEmpty) {
+          Future.microtask(() => Navigator.of(context).pop());
+          return const Scaffold(body: SizedBox.shrink());
+        }
 
-          // LOẠI ĐÁ
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Loại đá: ${widget.rock.loaiDa ?? "Chưa rõ"}',
-              style: TextStyle(fontSize: 16, color: Colors.amber[900], fontWeight: FontWeight.bold),
-            ),
-          ),
-
-          // kHUNG ĐÁ
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E3856),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.blueAccent),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        buildImageBox(widget.rock.hinhAnh?[1]),
-                        const SizedBox(width: 8),
-                        buildImageBox(widget.rock.hinhAnh?[2]),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        buildImageBox(widget.rock.hinhAnh?[3]),
-                        const SizedBox(width: 8),
-                        buildImageBox(widget.rock.hinhAnh?[4]),
-                      ],
-                    )
-                  ],
-                ),
-                const SizedBox(width: 18),
-                Expanded(
-                    child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Thành phần hóa học",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      widget.rock.thanhPhanHoaHoc ?? 'Chưa có dữ liệu',
-                      style: TextStyle(color: Color(0xFFFF8C42), fontSize: 12),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Độ cứng',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      widget.rock.doCung ?? 'Chưa có dữ liệu',
-                      style: TextStyle(color: Color(0xFFFF8C42), fontSize: 12),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Màu sắc',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      widget.rock.mauSac ?? 'Chưa có dữ liệu',
-                      style: TextStyle(color: Color(0xFFFF8C42), fontSize: 12),
-                    ),
-                  ],
-                )),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          // TIÊU ĐỀ MÔ TẢ ĐÁ
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.question_answer_outlined, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Một số câu hỏi phổ biến',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-
-          // DANH SÁCH CÂU HỎI
-          const SizedBox(height: 10),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              children: List.generate(
-                widget.rock.cauHoi!.length,
-                (index) {
-                  return ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-                    childrenPadding: const EdgeInsets.only(bottom: 8),
-                    title: Text(
-                      widget.rock.cauHoi?[index] ?? 'Chưa có dữ liệu',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    trailing: Icon(
-                      isExpandedList[index] ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    ),
-                    onExpansionChanged: (value) {
-                      setState(() {
-                        isExpandedList[index] = value;
-                      });
-                    },
-                    backgroundColor: Colors.white,
+        return Scaffold(
+          backgroundColor: theme.colorScheme.background,
+          body: CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(context, rock),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          widget.rock.traLoi?[index] ?? 'Chưa có dữ liệu trả lời',
-                        ),
-                      )
+                      _buildHeader(context, rock),
+                      const SizedBox(height: 24),
+                      _buildPropertyBox(context, rock),
+                      const SizedBox(height: 24),
+                      _buildSection(context, 'rock_detail.description_title', rock.mieuTa),
+                      _buildSection(context, 'rock_detail.basic_features_title', rock.dacDiem),
+                      _buildFaqSection(context, rock),
+                      _buildSection(context, 'rock_detail.structure', rock.kienTruc),
+                      _buildSection(context, 'rock_detail.texture', rock.cauTao),
+                      _buildSection(context, 'rock_detail.mineral_composition', rock.thanhPhanKhoangSan),
+                      _buildSection(context, 'rock_detail.uses', rock.congDung),
+                      _buildSection(context, 'rock_detail.distribution', rock.noiPhanBo),
+                      _buildSection(context, 'rock_detail.related_minerals', rock.motSoKhoangSanLienQuan),
+                      const SizedBox(height: 80), // Khoảng trống cho FAB
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 16),
-          // MÔ TẢ
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Mô tả',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                )
-              ],
-            ),
+          floatingActionButton: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton.extended(
+                onPressed: () => showAddEditRockSheet(context, rock: rock),
+                label: Text('rock_detail.edit_button'.tr()),
+                icon: const Icon(Icons.edit_outlined),
+                heroTag: 'edit_fab',
+              ),
+              const SizedBox(width: 12),
+              FloatingActionButton.extended(
+                // SỬA: Gọi hàm xóa một cách đơn giản
+                onPressed: () {
+                  showDeleteRockConfirmationDialog(context, rock: rock);
+                },
+                label: Text('rock_detail.delete_button'.tr()),
+                icon: const Icon(Icons.delete_outline),
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+                heroTag: 'delete_fab',
+              ),
+            ],  
           ),
-          const SizedBox(height: 10),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Text(
-              widget.rock.mieuTa ?? 'Chưa có dữ liệu ',
-              style: TextStyle(fontSize: 14),
-            ),
-          ),
+        );
+      },
+    );
+  }
 
-          // ĐẶC ĐIỂM CƠ BẢN
-          const SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Đặc điểm cơ bản',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                )
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ĐẶC ĐIỂM
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đặc điểm :',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.dacDiem ?? 'Chưa có dữ liệu đặc điểm',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-                Divider(height: 24),
-                //NHÓM ĐÁ
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Nhóm đá :',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.nhomDa ?? 'Chưa có dữ liệu nhóm đá',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-                Divider(height: 24),
+  // ... các hàm build helper khác không đổi
+  // --- WIDGET HELPERS ---
 
-                // ĐỘ CỨNG
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Độ cứng :',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.doCung ?? 'Chưa có dữ liệu Độ Cứng',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-                Divider(height: 24),
+// trong file rock_detail_screen.dart
 
-                // MẬT ĐỘ
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Mật độ :',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.matDo ?? 'Chưa có dữ liệu mật độ',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-                Divider(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Thành phần hóa học :',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.thanhPhanHoaHoc ?? 'Chưa có dữ liệu thành phấn hóa học',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-                Divider(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Màu sắc',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.rock.mauSac ?? 'Chưa có dữ liệu màu sắc',
-                        softWrap: true,
-                      ),
-                    )
-                  ],
-                ),
-              ],
-            ),
-          ),
+  Widget _buildSliverAppBar(BuildContext context, RockModels rock) {
+    final theme = Theme.of(context);
+    final hasImages = rock.hinhAnh.isNotEmpty;
 
-          // KIẾN TRÚC VÀ CẤU TẠO
-          const SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Kiến trúc và cấu tạo',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                )
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Kiến trúc',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.kienTruc ?? 'Chưa có dữ liệu kiến trúc',
-                ),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Cấu tạo',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.cauTao ?? 'Chưa có dữ liệu kiến trúc',
-                ),
-              ],
-            ),
-          ),
+    return SliverAppBar(
+      expandedHeight: 250.0,
+      pinned: true,
+      stretch: true,
+      backgroundColor: theme.colorScheme.primary,
 
-          // MỘT SỐ THÔNG TIN KHÁC
-          const SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Một số thông tin khác',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                )
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Thành phần khoáng sản',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
+      // GIỮ LẠI title ở đây. Nó sẽ tự động xuất hiện khi AppBar được thu nhỏ.
+      title: Text(rock.tenDa ?? 'rock_detail.unnamed_rock'.tr()),
+
+      flexibleSpace: FlexibleSpaceBar(
+        // SỬA: XÓA BỎ HOÀN TOÀN thuộc tính `title` ở đây.
+        // Đây chính là phần văn bản đang hiển thị trên ảnh.
+        // title: Text( ... ), // <--- ĐÃ XÓA
+
+        // Phần background giữ nguyên
+        background: hasImages
+            ? CarouselSlider(
+                options: CarouselOptions(
+                  height: 300,
+                  viewportFraction: 1.0,
+                  autoPlay: true,
+                  autoPlayInterval: const Duration(seconds: 5),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.thanhPhanKhoangSan ?? 'Chưa có dữ liệu thành phần khoáng sản',
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Công dụng của khoáng sản',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.congDung ?? 'Chưa có dữ liệu công dụng',
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Nơi phân bố',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.noiPhanBo ?? 'Chưa có dữ liệu nơi phân bố',
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.amber[900],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Một số khoáng sản liên quan',
-                      style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 15),
-                    )
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.rock.motSoKhoangSanLienQuan ?? 'Chưa có dữ liệu một số khoáng sản liên quan',
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    // Xử lý chỉnh sửa
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    'Chỉnh sửa đá',
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-                SizedBox(width: 12), // Khoảng cách giữa 2 nút
-                TextButton(
-                  onPressed: () {
-                    // Xử lý xóa
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    'Xóa đá',
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-              ],
-            ),
-          )
+                items: rock.hinhAnh.map((imageUrl) {
+                  return Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => Container(color: theme.colorScheme.surfaceVariant),
+                  );
+                }).toList(),
+              )
+            : Container(
+                color: theme.colorScheme.surfaceVariant,
+                child: Icon(Icons.terrain_outlined, size: 80, color: theme.colorScheme.onSurfaceVariant),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, RockModels rock) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          rock.tenDa ?? 'rock_detail.unnamed_rock'.tr(),
+          style: theme.textTheme.displaySmall,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${'rock_detail.type_label'.tr()}: ${rock.loaiDa ?? 'rock_management.unknown'.tr()}',
+          style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  // trong file rock_detail_screen.dart
+
+  Widget _buildPropertyBox(BuildContext context, RockModels rock) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.secondaryContainer.withOpacity(0.5), // Làm màu nền nhạt hơn một chút
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('rock_detail.property_box_title'.tr(),
+                style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold)),
+            const Divider(height: 24),
+            // SỬA: Hiển thị các thuộc tính theo từng hàng
+            _PropertyItem(icon: Icons.science_outlined, label: 'rock_detail.chemical_composition'.tr(), value: rock.thanhPhanHoaHoc),
+            const SizedBox(height: 16),
+            _PropertyItem(icon: Icons.fitness_center_outlined, label: 'rock_detail.hardness'.tr(), value: rock.doCung),
+            const SizedBox(height: 16),
+            _PropertyItem(icon: Icons.color_lens_outlined, label: 'rock_detail.color'.tr(), value: rock.mauSac),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(BuildContext context, String titleKey, String? content) {
+    if (content == null || content.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titleKey.tr(), style: theme.textTheme.titleLarge),
+          const Divider(height: 16),
+          Text(content, style: theme.textTheme.bodyLarge?.copyWith(height: 1.5)),
         ],
       ),
+    );
+  }
+
+  Widget _buildFaqSection(BuildContext context, RockModels rock) {
+    if (rock.cauHoi.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('rock_detail.faq_title'.tr(), style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: List.generate(rock.cauHoi.length, (index) {
+                return ExpansionTile(
+                  title: Text(rock.cauHoi[index], style: theme.textTheme.titleSmall),
+                  children: [
+                    Container(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                      padding: const EdgeInsets.all(16.0),
+                      width: double.infinity,
+                      child: Text(rock.traLoi[index], style: theme.textTheme.bodyMedium),
+                    )
+                  ],
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// trong file rock_detail_screen.dart
+
+class _PropertyItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? value;
+
+  const _PropertyItem({required this.icon, required this.label, this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // SỬA: Bố cục theo hàng ngang
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start, // Căn lề trên nếu value có nhiều dòng
+      children: [
+        Icon(icon, color: theme.colorScheme.onSecondaryContainer, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(
+                value ?? 'N/A',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,13 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RockModels {
-  String uid;
-  final List<String>? hinhAnh;
+  final String uid;
+  final List<String> hinhAnh; // SỬA: Không cho phép null, mặc định là list rỗng
   final String? tenDa;
   final String? loaiDa;
   final String? thanhPhanHoaHoc;
   final String? doCung;
   final String? mauSac;
-  final List<String>? cauHoi;
-  final List<String>? traLoi;
+  final List<String> cauHoi; // SỬA: Không cho phép null
+  final List<String> traLoi; // SỬA: Không cho phép null
   final String? mieuTa;
   final String? dacDiem;
   final String? nhomDa;
@@ -19,16 +21,16 @@ class RockModels {
   final String? noiPhanBo;
   final String? motSoKhoangSanLienQuan;
 
-  RockModels({
+  const RockModels({
     required this.uid,
-    this.hinhAnh,
+    this.hinhAnh = const [], // SỬA: Gán giá trị mặc định
     this.tenDa,
     this.loaiDa,
     this.thanhPhanHoaHoc,
     this.doCung,
     this.mauSac,
-    this.cauHoi,
-    this.traLoi,
+    this.cauHoi = const [], // SỬA: Gán giá trị mặc định
+    this.traLoi = const [], // SỬA: Gán giá trị mặc định
     this.mieuTa,
     this.dacDiem,
     this.nhomDa,
@@ -41,33 +43,38 @@ class RockModels {
     this.motSoKhoangSanLienQuan,
   });
 
+  // THÊM: Các phương thức tiện ích
+  static const RockModels empty = RockModels(uid: '');
+  bool get isEmpty => uid.isEmpty;
+  bool get isNotEmpty => uid.isNotEmpty;
+
   factory RockModels.fromJson(Map<String, dynamic> json) {
     return RockModels(
-      uid: json['uid'],
+      uid: json['uid'] as String? ?? '',
       hinhAnh: List<String>.from(json['hinhAnh'] ?? []),
-      tenDa: json['tenDa'],
-      loaiDa: json['loaiDa'],
-      thanhPhanHoaHoc: json['thanhPhanHoaHoc'],
-      doCung: json['doCung'],
-      mauSac: json['mauSac'],
+      tenDa: json['tenDa'] as String?,
+      loaiDa: json['loaiDa'] as String?,
+      thanhPhanHoaHoc: json['thanhPhanHoaHoc'] as String?,
+      doCung: json['doCung'] as String?,
+      mauSac: json['mauSac'] as String?,
       cauHoi: List<String>.from(json['cauHoi'] ?? []),
       traLoi: List<String>.from(json['traLoi'] ?? []),
-      mieuTa: json['mieuTa'],
-      dacDiem: json['dacDiem'],
-      nhomDa: json['nhomDa'],
-      matDo: json['matDo'],
-      kienTruc: json['kienTruc'],
-      cauTao: json['cauTao'],
-      thanhPhanKhoangSan: json['thanhPhanKhoangSan'],
-      congDung: json['congDung'],
-      noiPhanBo: json['noiPhanBo'],
-      motSoKhoangSanLienQuan: json['motSoKhoangSanLienQuan'],
+      mieuTa: json['mieuTa'] as String?,
+      dacDiem: json['dacDiem'] as String?,
+      nhomDa: json['nhomDa'] as String?,
+      matDo: json['matDo'] as String?,
+      kienTruc: json['kienTruc'] as String?,
+      cauTao: json['cauTao'] as String?,
+      thanhPhanKhoangSan: json['thanhPhanKhoangSan'] as String?,
+      congDung: json['congDung'] as String?,
+      noiPhanBo: json['noiPhanBo'] as String?,
+      motSoKhoangSanLienQuan: json['motSoKhoangSanLienQuan'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
+    // SỬA: Không cần lưu uid trong data vì nó là ID của document
     return {
-      'uid': uid,
       'hinhAnh': hinhAnh,
       'tenDa': tenDa,
       'loaiDa': loaiDa,

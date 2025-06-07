@@ -1,179 +1,141 @@
+// lib/view_models/rock_view_model.dart
+
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart';
-import 'package:flutter/material.dart';
 import 'package:rock_classifier/data/models/rock_models.dart';
 import 'package:rock_classifier/data/services/firebase_rock_service.dart';
 
+enum RockSortOption { tenDa, loaiDa, nhomDa }
+
 class RockViewModel with ChangeNotifier {
   final FirebaseRockService _service = FirebaseRockService();
+  final ImagePicker _picker = ImagePicker();
 
+  List<RockModels> _originalRocks = [];
   List<RockModels> _rocks = [];
   List<RockModels> get rocks => _rocks;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String? _error;
-  String? get error => _error;
+  bool _isUpdating = false;
+  bool get isUpdating => _isUpdating;
 
-  File? _selectedImage;
-  File? get selectedImage => _selectedImage;
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
 
-  // Hiển thị đá
+  void _setUpdating(bool value) {
+    _isUpdating = value;
+    notifyListeners();
+  }
+
   Future<void> fetchRocks() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _setLoading(true);
     try {
-      _rocks = await _service.fetchAllRocks();
+      _originalRocks = await _service.fetchAllRocks();
+      _rocks = List.from(_originalRocks);
     } catch (e) {
-      _error = 'Lỗi $e';
-    }
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  // Thêm đá không ảnh
-  Future<void> addRock(RockModels rock) async {
-    try {
-      await _service.addRock(rock);
-      await fetchRocks();
-    } catch (e) {
-      _error = 'Lỗi của thêm đá $e';
-      notifyListeners();
-    }
-  }
-
-  // Xóa đá
-  Future<void> deleteRock(String uid) async {
-    try {
-      await _service.deleteRockByUid(uid);
-      _rocks.removeWhere(
-        (element) => element.uid == uid,
-      );
-      notifyListeners();
-    } catch (e) {
-      _error = 'Lỗi xóa đá : $e';
-      notifyListeners();
-    }
-  }
-
-  //Tìm kiếm đá theo tên
-  Future<void> searchRock(String keyword) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      _rocks = await _service.searchRocks(keyword);
-    } catch (e) {
-      _error = 'Lỗi tìm kiếm đá $e';
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  // Hàm chọn ảnh từ thư viện hoặc camera
-  Future<void> pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      _selectedImage = File(pickedFile.path);
-      notifyListeners();
-    }
-  }
-
-  //Up load hình ảnh lên firestrore và trả về url
-  Future<String?> uploadImageToFirebase(String folderName) async {
-    if (_selectedImage == null) return null;
-    try {
-      final fileName = basename(_selectedImage!.path);
-      final ref = FirebaseStorage.instance.ref().child('$folderName/$fileName');
-      await ref.putFile(_selectedImage!);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      _error = 'Lỗi tải ảnh (Rock_view_model): $e';
-      notifyListeners();
-      return null;
-    }
-  }
-
-  // Hàm add rock có cả image
-  Future<void> addRockWithImage(RockModels rock) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final imageUrl = await uploadImageToFirebase('rocks');
-      if (imageUrl != null) {
-        rock = rock.copyWith(hinhAnh: [imageUrl]);
-      }
-      await _service.addRock(rock);
-      await fetchRocks();
-    } catch (e) {
-      _error = 'Lỗi thêm đá có ảnh $e';
+      debugPrint("Lỗi fetchRocks: $e");
+      _originalRocks = [];
+      _rocks = [];
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-// Cập nhật thông tin đá không có ảnh
-  Future<void> updateRockWithoutImage(RockModels rock) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+  Future<void> addRock(RockModels rock, List<File> images) async {
+    _setUpdating(true);
     try {
-      await _service.updateRock(rock); // Gọi phương thức updateRock trong Firebase service
-      await fetchRocks(); // Lấy lại danh sách đá sau khi cập nhật
-    } catch (e) {
-      _error = 'Lỗi cập nhật đá không có ảnh $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // Cập nhật thông tin đá có ảnh
-  Future<void> updateRockWithImage(RockModels rock) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // Tải ảnh mới lên Firebase và lấy URL ảnh
-      final imageUrl = await uploadImageToFirebase('rocks');
-      if (imageUrl != null) {
-        // Cập nhật lại đá với URL ảnh mới
-        rock = rock.copyWith(hinhAnh: [imageUrl]);
+      if (rock.tenDa == null || rock.tenDa!.isEmpty) {
+        throw Exception('Tên đá không được để trống khi thêm ảnh.');
       }
 
-      // Cập nhật thông tin đá lên Firebase
-      await _service.updateRock(rock);
-      await fetchRocks(); // Lấy lại danh sách đá sau khi cập nhật
+      List<String> imageUrls = [];
+      for (var imageFile in images) {
+        final url = await _service.uploadImage(imageFile, rock.tenDa!);
+        imageUrls.add(url);
+      }
+
+      final rockWithImages = rock.copyWith(hinhAnh: imageUrls);
+      await _service.addRock(rockWithImages); // Service sẽ tự gán UID
+      await fetchRocks();
     } catch (e) {
-      _error = 'Lỗi cập nhật đá có ảnh $e';
+      debugPrint("Lỗi addRock: $e");
+      rethrow;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setUpdating(false);
     }
   }
 
-  void sortByTenDa() {
-    _rocks.sort((a, b) => (a.tenDa ?? '').compareTo(b.tenDa ?? ''));
+  Future<void> updateRock(RockModels rock, List<File> newImages) async {
+    _setUpdating(true);
+    try {
+      if (rock.tenDa == null || rock.tenDa!.isEmpty) {
+        throw Exception('Tên đá không được để trống khi thêm ảnh.');
+      }
+
+      List<String> finalImageUrls = List.from(rock.hinhAnh);
+      for (var imageFile in newImages) {
+        final url = await _service.uploadImage(imageFile, rock.tenDa!);
+        finalImageUrls.add(url);
+      }
+
+      final rockToUpdate = rock.copyWith(hinhAnh: finalImageUrls);
+      await _service.updateRock(rockToUpdate);
+      await fetchRocks();
+    } catch (e) {
+      debugPrint("Lỗi updateRock: $e");
+      rethrow;
+    } finally {
+      _setUpdating(false);
+    }
+  }
+
+  Future<void> deleteRock(RockModels rock) async {
+    _setUpdating(true);
+    try {
+      await _service.deleteRock(rock);
+      await fetchRocks();
+    } catch (e) {
+      debugPrint("Lỗi deleteRock: $e");
+      rethrow;
+    } finally {
+      _setUpdating(false);
+    }
+  }
+
+  void searchRocks(String query) {
+    if (query.isEmpty) {
+      _rocks = List.from(_originalRocks);
+    } else {
+      final lowerCaseQuery = query.toLowerCase();
+      _rocks = _originalRocks.where((rock) {
+        return (rock.tenDa?.toLowerCase().contains(lowerCaseQuery) ?? false) || (rock.loaiDa?.toLowerCase().contains(lowerCaseQuery) ?? false);
+      }).toList();
+    }
     notifyListeners();
   }
 
-  void sortByLoaiDa() {
-    _rocks.sort((a, b) => (a.loaiDa ?? '').compareTo(b.loaiDa ?? ''));
+  void sortRocks(RockSortOption option) {
+    switch (option) {
+      case RockSortOption.tenDa:
+        _rocks.sort((a, b) => (a.tenDa ?? '').compareTo(b.tenDa ?? ''));
+        break;
+      case RockSortOption.loaiDa:
+        _rocks.sort((a, b) => (a.loaiDa ?? '').compareTo(b.loaiDa ?? ''));
+        break;
+      case RockSortOption.nhomDa:
+        _rocks.sort((a, b) => (a.nhomDa ?? '').compareTo(b.nhomDa ?? ''));
+        break;
+    }
     notifyListeners();
   }
 
-  void sortByNhomDa() {
-    _rocks.sort((a, b) => (a.nhomDa ?? '').compareTo(b.nhomDa ?? ''));
-    notifyListeners();
+  Future<List<File>> pickImages() async {
+    final List<XFile> pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
+    return pickedFiles.map((xfile) => File(xfile.path)).toList();
   }
 }

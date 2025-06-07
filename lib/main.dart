@@ -11,6 +11,7 @@ import 'package:rock_classifier/view_models/news_view_model.dart';
 import 'package:rock_classifier/view_models/rock_view_model.dart';
 import 'package:rock_classifier/view_models/theme_provider.dart';
 import 'package:rock_classifier/view_models/user_list_view_model.dart';
+import 'package:rock_classifier/views/admin/rocks/rock_list_screen.dart';
 import 'package:rock_classifier/views/auth/login_page.dart'; // Thêm thư viện easy_localization
 
 Future<void> main() async {
@@ -52,7 +53,7 @@ class MyApp extends StatelessWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale, // Sử dụng ngôn ngữ mặc định của thiết bị
-      theme: lightTheme ,
+      theme: lightTheme,
       debugShowCheckedModeBanner: false,
       home: LoginPage(),
     );

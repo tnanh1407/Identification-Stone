@@ -172,5 +172,58 @@
       "edit_user_button": "Chỉnh sửa thông tin",
       "delete_user_button": "Xóa người dùng này"
     }
+  },
+  "rock_management": {
+    "title": "Quản lý Đá",
+    "list_title": "Danh sách Đá",
+    "search_hint": "Tìm kiếm theo tên, loại...",
+    "sort_tooltip": "Sắp xếp danh sách",
+    "sort_by_name": "Sắp xếp theo tên",
+    "sort_by_type": "Sắp xếp theo loại",
+    "sort_by_group": "Sắp xếp theo nhóm",
+    "rock_count": "Số lượng: {count}",
+    "no_rock_found_title": "Không tìm thấy Đá",
+    "no_rock_found_subtitle": "Hãy thử tìm kiếm với từ khóa khác hoặc thêm đá mới.",
+    "add_rock_tooltip": "Thêm đá mới",
+    "unnamed_rock": "Đá chưa có tên",
+    "type_label": "Loại",
+    "group_label": "Nhóm",
+    "unknown": "Chưa rõ",
+    "add_rock_title": "Thêm đá mới",
+    "edit_rock_title": "Chỉnh sửa thông tin đá",
+    "add_success": "Thêm đá thành công!",
+    "update_success": "Cập nhật đá thành công!",
+    "delete_success": "Xóa đá thành công!",
+    "delete_failed": "Xóa đá thất bại: {error}",
+    "error": {
+      "name_required": "Vui lòng nhập tên đá",
+      "type_required": "Vui lòng nhập loại đá",
+      "image_required": "Vui lòng chọn ít nhất một ảnh"
+    }
+  },
+  "rock_detail": {
+    "title": "Chi tiết Đá",
+    "unnamed_rock": "Đá chưa có tên",
+    "type_label": "Loại đá",
+    "property_box_title": "Thuộc tính nhanh",
+    "chemical_composition": "Thành phần hóa học",
+    "hardness": "Độ cứng",
+    "color": "Màu sắc",
+    "faq_title": "Câu hỏi thường gặp",
+    "description_title": "Mô tả",
+    "basic_features_title": "Đặc điểm cơ bản",
+    "feature": "Đặc điểm",
+    "group": "Nhóm",
+    "density": "Mật độ",
+    "structure_texture_title": "Kiến trúc và Cấu tạo",
+    "structure": "Kiến trúc",
+    "texture": "Cấu tạo",
+    "other_info_title": "Thông tin khác",
+    "mineral_composition": "Thành phần khoáng sản",
+    "uses": "Công dụng",
+    "distribution": "Nơi phân bố",
+    "related_minerals": "Khoáng sản liên quan",
+    "edit_button": "Chỉnh sửa",
+    "delete_button": "Xóa"
   }
 }

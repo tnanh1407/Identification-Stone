@@ -172,5 +172,58 @@
       "edit_user_button": "Edit Information",
       "delete_user_button": "Delete This User"
     }
+  },
+  "rock_management": {
+    "title": "Rock Management",
+    "list_title": "Rock List",
+    "search_hint": "Search by name, type...",
+    "sort_tooltip": "Sort list",
+    "sort_by_name": "Sort by name",
+    "sort_by_type": "Sort by type",
+    "sort_by_group": "Sort by group",
+    "rock_count": "Count: {count}",
+    "no_rock_found_title": "No Rocks Found",
+    "no_rock_found_subtitle": "Try searching with a different keyword or add a new rock.",
+    "add_rock_tooltip": "Add new rock",
+    "unnamed_rock": "Unnamed Rock",
+    "type_label": "Type",
+    "group_label": "Group",
+    "unknown": "Unknown",
+    "add_rock_title": "Add New Rock",
+    "edit_rock_title": "Edit Rock Information",
+    "add_success": "Rock added successfully!",
+    "update_success": "Rock updated successfully!",
+    "delete_success": "Rock deleted successfully!",
+    "delete_failed": "Failed to delete rock: {error}",
+    "error": {
+      "name_required": "Please enter a rock name",
+      "type_required": "Please enter a rock type",
+      "image_required": "Please select at least one image"
+    }
+  },
+  "rock_detail": {
+    "title": "Rock Details",
+    "unnamed_rock": "Unnamed Rock",
+    "type_label": "Rock Type",
+    "property_box_title": "Quick Properties",
+    "chemical_composition": "Chemical Composition",
+    "hardness": "Hardness",
+    "color": "Color",
+    "faq_title": "FAQ",
+    "description_title": "Description",
+    "basic_features_title": "Basic Features",
+    "feature": "Features",
+    "group": "Group",
+    "density": "Density",
+    "structure_texture_title": "Structure and Texture",
+    "structure": "Structure",
+    "texture": "Texture",
+    "other_info_title": "Other Information",
+    "mineral_composition": "Mineral Composition",
+    "uses": "Uses",
+    "distribution": "Distribution",
+    "related_minerals": "Related Minerals",
+    "edit_button": "Edit",
+    "delete_button": "Delete"
   }
 }

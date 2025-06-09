@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/Core/theme/theme.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:rock_classifier/data/services/favorite_service.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/view_models/news_view_model.dart';
 import 'package:rock_classifier/view_models/rock_view_model.dart';
@@ -22,6 +23,9 @@ Future<void> main() async {
       fallbackLocale: const Locale('en'), // Thêm fallback locale
       child: MultiProvider(
         providers: [
+          Provider<FavoriteService>(
+            create: (context) => FavoriteService(),
+          ),
           // SỬA: Không cần các Provider cho Service nữa, vì ViewModel đã khởi tạo chúng
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => AuthViewModel()),

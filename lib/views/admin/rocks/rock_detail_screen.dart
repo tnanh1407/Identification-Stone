@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/data/models/rock_models.dart';
+import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/view_models/rock_view_model.dart';
 import 'package:rock_classifier/views/admin/rocks/add_edit_rock_sheet.dart';
 import 'package:rock_classifier/views/admin/rocks/rock_management_dialogs.dart';
@@ -17,6 +18,7 @@ class RockDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authViewModel = context.watch<AuthViewModel>();
 
     return Consumer<RockViewModel>(
       builder: (context, viewModel, child) {
@@ -61,38 +63,34 @@ class RockDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          floatingActionButton: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton.extended(
-                onPressed: () => showAddEditRockSheet(context, rock: rock),
-                label: Text('rock_detail.edit_button'.tr()),
-                icon: const Icon(Icons.edit_outlined),
-                heroTag: 'edit_fab',
-              ),
-              const SizedBox(width: 12),
-              FloatingActionButton.extended(
-                // SỬA: Gọi hàm xóa một cách đơn giản
-                onPressed: () {
-                  showDeleteRockConfirmationDialog(context, rock: rock);
-                },
-                label: Text('rock_detail.delete_button'.tr()),
-                icon: const Icon(Icons.delete_outline),
-                backgroundColor: theme.colorScheme.error,
-                foregroundColor: theme.colorScheme.onError,
-                heroTag: 'delete_fab',
-              ),
-            ],
-          ),
+          floatingActionButton: authViewModel.isAdmin() // Chỉ Admin mới thấy các nút này
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    FloatingActionButton.extended(
+                      onPressed: () => showAddEditRockSheet(context, rock: rock),
+                      label: Text('rock_detail.edit_button'.tr()),
+                      icon: const Icon(Icons.edit_outlined),
+                      heroTag: 'edit_fab',
+                    ),
+                    const SizedBox(width: 12),
+                    FloatingActionButton.extended(
+                      onPressed: () {
+                        showDeleteRockConfirmationDialog(context, rock: rock);
+                      },
+                      label: Text('rock_detail.delete_button'.tr()),
+                      icon: const Icon(Icons.delete_outline),
+                      backgroundColor: theme.colorScheme.error,
+                      foregroundColor: theme.colorScheme.onError,
+                      heroTag: 'delete_fab',
+                    ),
+                  ],
+                )
+              : null,
         );
       },
     );
   }
-
-  // ... các hàm build helper khác không đổi
-  // --- WIDGET HELPERS ---
-
-// trong file rock_detail_screen.dart
 
   Widget _buildSliverAppBar(BuildContext context, RockModels rock) {
     final theme = Theme.of(context);
@@ -103,16 +101,8 @@ class RockDetailScreen extends StatelessWidget {
       pinned: true,
       stretch: true,
       backgroundColor: theme.colorScheme.primary,
-
-      // GIỮ LẠI title ở đây. Nó sẽ tự động xuất hiện khi AppBar được thu nhỏ.
       title: Text(rock.tenDa ?? 'rock_detail.unnamed_rock'.tr()),
-
       flexibleSpace: FlexibleSpaceBar(
-        // SỬA: XÓA BỎ HOÀN TOÀN thuộc tính `title` ở đây.
-        // Đây chính là phần văn bản đang hiển thị trên ảnh.
-        // title: Text( ... ), // <--- ĐÃ XÓA
-
-        // Phần background giữ nguyên
         background: hasImages
             ? CarouselSlider(
                 options: CarouselOptions(

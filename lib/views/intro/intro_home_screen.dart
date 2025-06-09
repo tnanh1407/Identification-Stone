@@ -6,7 +6,7 @@ import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/views/admin/main_page_admin.dart';
 import 'package:rock_classifier/views/auth/login_page.dart';
 import 'package:rock_classifier/views/intro/intro_screen.dart';
-import 'package:rock_classifier/views/users/home_page_user.dart';
+import 'package:rock_classifier/views/users/main_page_user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class IntroHomeScreen extends StatefulWidget {
@@ -60,7 +60,7 @@ class _IntroHomeScreenState extends State<IntroHomeScreen> {
         if (authViewModel.isAdmin() || authViewModel.isSuperUser()) {
           homePage = const MainPageAdmin();
         } else {
-          homePage = const HomePageUser();
+          homePage = const MainPageUser();
         }
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => homePage));
       } else {
@@ -84,9 +84,9 @@ class _IntroHomeScreenState extends State<IntroHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/logo.png',
-                width: 120,
-                height: 120,
+                'assets/humg_logo.jpg',
+                width: 200,
+                height: 200,
               ),
               const SizedBox(height: 24),
               Text(
@@ -97,7 +97,7 @@ class _IntroHomeScreenState extends State<IntroHomeScreen> {
               Text(
                 'splash_screen.main_title'.tr(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.displaySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                style: theme.textTheme.displaySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 20),
               ),
               const SizedBox(height: 16),
               Text(

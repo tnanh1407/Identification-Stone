@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rock_classifier/data/models/rock_models.dart';
 import 'package:rock_classifier/view_models/rock_view_model.dart';
 import 'package:rock_classifier/views/admin/rocks/add_edit_rock_sheet.dart';
 import 'package:rock_classifier/views/admin/rocks/rock_detail_screen.dart';
@@ -48,7 +47,7 @@ class _RockListScreenState extends State<RockListScreen> {
             onPressed: () {
               _searchController.clear();
               // Gọi search với chuỗi rỗng để reset danh sách về ban đầu
-              Provider.of<RockViewModel>(context, listen: false).searchRocks('');
+              Provider.of<RockViewModel>(context, listen: false).searchAllRocks('');
             },
           )
         ],
@@ -105,7 +104,7 @@ class _RockListScreenState extends State<RockListScreen> {
               controller: _searchController,
               // SỬA: Dùng onChanged là cách đúng và đơn giản nhất
               onChanged: (value) {
-                viewModel.searchRocks(value.trim());
+                viewModel.searchAllRocks(value.trim());
               },
               decoration: InputDecoration(
                 hintText: 'rock_management.search_hint'.tr(),
@@ -116,7 +115,7 @@ class _RockListScreenState extends State<RockListScreen> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          viewModel.searchRocks('');
+                          viewModel.searchAllRocks('');
                         },
                       )
                     : null,
@@ -129,7 +128,7 @@ class _RockListScreenState extends State<RockListScreen> {
             child: PopupMenuButton<RockSortOption>(
               icon: Icon(Icons.sort, color: theme.colorScheme.onSurfaceVariant),
               tooltip: 'rock_management.sort_tooltip'.tr(),
-              onSelected: (option) => viewModel.sortRocks(option),
+              onSelected: (option) => viewModel.sortAllRocks(option),
               itemBuilder: (context) => [
                 _buildSortMenuItem(context, icon: Icons.sort_by_alpha, textKey: 'rock_management.sort_by_name', option: RockSortOption.tenDa),
                 _buildSortMenuItem(context, icon: Icons.category_outlined, textKey: 'rock_management.sort_by_type', option: RockSortOption.loaiDa),

@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/view_models/auth_view_model.dart';
-import 'package:rock_classifier/views/users/home_page_user.dart';
+import 'package:rock_classifier/views/users/main_page_user.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -44,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage> {
             backgroundColor: Colors.green),
       );
       navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomePageUser()),
+        MaterialPageRoute(builder: (context) => const MainPageUser()),
         (route) => false,
       );
     } else {

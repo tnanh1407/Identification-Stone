@@ -92,5 +92,5 @@ class UserModels {
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
     );
-  } 
+  }
 }

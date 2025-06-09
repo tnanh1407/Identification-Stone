@@ -5,7 +5,7 @@ import 'package:rock_classifier/view_models/auth_view_model.dart';
 import 'package:rock_classifier/views/admin/main_page_admin.dart';
 import 'package:rock_classifier/views/auth/forgotpassworl_screen.dart';
 import 'package:rock_classifier/views/auth/register_page.dart';
-import 'package:rock_classifier/views/users/home_page_user.dart';
+import 'package:rock_classifier/views/users/main_page_user.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       if (authViewModel.isAdmin() || authViewModel.isSuperUser()) {
         navigator.pushReplacement(MaterialPageRoute(builder: (context) => const MainPageAdmin()));
       } else if (authViewModel.isUser()) {
-        navigator.pushReplacement(MaterialPageRoute(builder: (context) => const HomePageUser()));
+        navigator.pushReplacement(MaterialPageRoute(builder: (context) => const MainPageUser()));
       }
     } else {
       messenger.showSnackBar(

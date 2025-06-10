@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:rock_classifier/Core/theme/theme.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -12,6 +13,7 @@ import 'package:rock_classifier/view_models/user_list_view_model.dart';
 import 'package:rock_classifier/views/intro/intro_home_screen.dart';
 
 Future<void> main() async {
+  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await EasyLocalization.ensureInitialized();
